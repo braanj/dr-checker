@@ -1,0 +1,21 @@
+{
+  "name": "dr-checker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "nuxt": "^3.13.0",
+    "papaparse": "^5.4.1",
+    "vue": "^3.4.0"
+  },
+  "devDependencies": {
+    "@nuxtjs/tailwindcss": "^6.12.0",
+    "@types/papaparse": "^5.3.14",
+    "eslint": "^10.6.0"
+  }
+}
