@@ -18,8 +18,8 @@
         </div>
       </div>
 
-      <button v-if="!['pending', 'processing', 'failed'].includes(batch.status)"
-        class="mt-6 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white" @click="download">
+      <button v-if="batch.processed_urls" class="mt-6 rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white"
+        @click="download">
         Download CSV
       </button>
 
