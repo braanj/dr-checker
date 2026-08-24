@@ -1,86 +1,96 @@
 <template>
-  <div class="max-w-3xl mx-auto px-4 py-16">
-    <h1 class="text-2xl font-semibold text-slate-900">Bulk Domain Rating Checker</h1>
-    <p class="mt-2 text-slate-600">
-      Upload a CSV of URLs (one per line, or a column named <code>url</code>). We'll create an
-      account for you automatically and check each domain's Ahrefs DR. <NuxtLink class="underline" to="/docs">
-        Find out how to use it.
-      </NuxtLink>
-    </p>
+  <div>
+    <!-- Hero -->
+    <section class="bg-hero-radial px-4 pb-14 pt-16 text-center sm:pb-20 sm:pt-24">
+      <h1 class="text-4xl font-semibold tracking-tight text-[#1d1d1f] sm:text-5xl">
+        Bulk Domain Rating Checker
+      </h1>
+      <p class="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-[#6e6e73]">
+        Upload a CSV of URLs — one per line, or a column named <code
+          class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">url</code>.
+        We'll create an account for you automatically and check each domain's Ahrefs DR.
+        <NuxtLink class="text-accent hover:underline" to="/docs">
+          Find out how to use it.
+        </NuxtLink>
+      </p>
+    </section>
 
-    <form class="mt-8 space-y-4" @submit.prevent="onSubmit">
-      <label
-        class="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-white p-10 text-center cursor-pointer hover:border-slate-400">
-        <span class="text-sm font-medium text-slate-700">
-          {{ file ? file.name : "Click to choose a CSV file" }}
-        </span>
-        <span class="text-xs text-slate-400">Max 5,000 URLs</span>
-        <input type="file" accept=".csv,text/csv" class="hidden" @change="onFileChange" />
-      </label>
+    <div class="mx-auto max-w-2xl px-4 pb-24">
+      <!-- Upload card -->
+      <form class="space-y-4" @submit.prevent="onSubmit">
+        <label
+          class="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-black/15 bg-white p-12 text-center shadow-sm transition-colors cursor-pointer hover:border-accent/50 hover:bg-accent-light/40">
+          <span class="text-[15px] font-medium text-[#1d1d1f]">
+            {{ file ? file.name : "Click to choose a CSV file" }}
+          </span>
+          <span class="text-xs text-[#86868b]">Max 5,000 URLs</span>
+          <input type="file" accept=".csv,text/csv" class="hidden" @change="onFileChange" />
+        </label>
 
-      <button type="submit" :disabled="!file || submitting"
-        class="w-full rounded-md bg-slate-900 px-4 py-2.5 text-white font-medium disabled:opacity-40">
-        {{ submitting ? "Uploading…" : "Analyze URLs" }}
-      </button>
+        <button type="submit" :disabled="!file || submitting"
+          class="w-full rounded-full bg-accent px-4 py-3 text-[15px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-black/20">
+          {{ submitting ? "Uploading…" : "Analyze URLs" }}
+        </button>
 
-      <p v-if="errorMsg" class="text-sm text-red-600">{{ errorMsg }}</p>
-    </form>
+        <p v-if="errorMsg" class="text-sm text-red-600">{{ errorMsg }}</p>
+      </form>
 
-    <!-- Auto-generated credentials, shown once -->
-    <div v-if="credentials" class="mt-8 rounded-lg border border-amber-300 bg-amber-50 p-4">
-      <!-- <p class="text-sm font-semibold text-amber-900">Your account was created — save these credentials:</p>
-      <dl class="mt-2 text-sm text-amber-900 space-y-1">
-        <div><dt class="inline font-medium">Email:</dt> <dd class="inline">{{ credentials.email }}</dd></div>
-        <div><dt class="inline font-medium">Password:</dt> <dd class="inline">{{ credentials.password }}</dd></div>
-      </dl>
-      <p class="mt-2 text-xs text-amber-700">This is the only time the password is shown.</p> -->
-      <NuxtLink :to="`/results/${batchId}`"
-        class="w-full text-center inline-block rounded-md bg-amber-900 px-4 py-2 text-sm font-medium text-white">
-        View processing status →
-      </NuxtLink>
-    </div>
-
-    <!-- Previously processed domains, across all users -->
-    <div class="mt-16">
-      <h2 class="text-lg font-semibold text-slate-900">Previously checked domains ({{ totalDomains }} total)</h2>
-      <p class="mt-1 text-sm text-slate-500">Every domain this app has looked up so far.</p>
-
-      <div class="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white">
-        <table class="w-full text-sm border-collapse">
-          <thead>
-            <tr class="text-left text-slate-500 border-b border-slate-200 bg-slate-50">
-              <th class="py-2 px-4">Domain</th>
-              <th class="py-2 px-4">DR</th>
-              <th class="py-2 px-4">Checked on</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="domainsLoading">
-              <td colspan="3" class="py-6 px-4 text-center text-slate-400">Loading…</td>
-            </tr>
-            <tr v-else-if="domains.length === 0">
-              <td colspan="3" class="py-6 px-4 text-center text-slate-400">No domains checked yet.</td>
-            </tr>
-            <tr v-for="d in domains" :key="d.domain" class="border-b border-slate-100 last:border-0">
-              <td class="py-2 px-4">{{ d.domain }}</td>
-              <td class="py-2 px-4 font-medium">{{ d.dr ?? "—" }}</td>
-              <td class="py-2 px-4 text-slate-500">{{ formatDate(d.checked_at) }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Auto-generated credentials, shown once -->
+      <div v-if="credentials" class="mt-6 rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
+        <NuxtLink :to="`/results/${batchId}`"
+          class="block w-full rounded-full bg-[#1d1d1f] px-4 py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-black">
+          View processing status →
+        </NuxtLink>
       </div>
 
-      <div v-if="totalPages > 1" class="mt-3 flex items-center justify-between text-sm">
-        <span class="text-slate-500">Page {{ domainsPage }} of {{ totalPages }} ({{ totalDomains }} total)</span>
-        <div class="flex gap-2">
-          <button class="rounded-md border border-slate-300 px-3 py-1 disabled:opacity-40" :disabled="domainsPage <= 1"
-            @click="goToPage(domainsPage - 1)">
-            Previous
-          </button>
-          <button class="rounded-md border border-slate-300 px-3 py-1 disabled:opacity-40"
-            :disabled="domainsPage >= totalPages" @click="goToPage(domainsPage + 1)">
-            Next
-          </button>
+      <!-- Previously processed domains, across all users -->
+      <div class="mt-20">
+        <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">
+          Previously checked domains
+          <span class="text-[#86868b]">({{ totalDomains }})</span>
+        </h2>
+        <p class="mt-1 text-sm text-[#6e6e73]">Every domain this app has looked up so far.</p>
+
+        <div class="mt-5 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm">
+          <table class="w-full text-sm border-collapse">
+            <thead>
+              <tr class="text-left text-[#6e6e73] border-b border-black/5">
+                <th class="py-3 px-4 font-medium">Domain</th>
+                <th class="py-3 px-4 font-medium">DR</th>
+                <th class="py-3 px-4 font-medium">Checked on</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="domainsLoading">
+                <td colspan="3" class="py-8 px-4 text-center text-[#86868b]">Loading…</td>
+              </tr>
+              <tr v-else-if="domains.length === 0">
+                <td colspan="3" class="py-8 px-4 text-center text-[#86868b]">No domains checked yet.</td>
+              </tr>
+              <tr v-for="d in domains" :key="d.domain"
+                class="border-b border-black/5 last:border-0 transition-colors hover:bg-black/[0.02]">
+                <td class="py-2.5 px-4">{{ d.domain }}</td>
+                <td class="py-2.5 px-4 font-medium">{{ d.dr ?? "—" }}</td>
+                <td class="py-2.5 px-4 text-[#6e6e73]">{{ formatDate(d.checked_at) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-if="totalPages > 1" class="mt-4 flex items-center justify-between text-sm">
+          <span class="text-[#6e6e73]">Page {{ domainsPage }} of {{ totalPages }} ({{ totalDomains }} total)</span>
+          <div class="flex gap-2">
+            <button
+              class="rounded-full border border-black/10 px-4 py-1.5 text-[#1d1d1f] transition-colors hover:border-accent/50 hover:text-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-black/10 disabled:hover:text-[#1d1d1f]"
+              :disabled="domainsPage <= 1" @click="goToPage(domainsPage - 1)">
+              Previous
+            </button>
+            <button
+              class="rounded-full border border-black/10 px-4 py-1.5 text-[#1d1d1f] transition-colors hover:border-accent/50 hover:text-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-black/10 disabled:hover:text-[#1d1d1f]"
+              :disabled="domainsPage >= totalPages" @click="goToPage(domainsPage + 1)">
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>
