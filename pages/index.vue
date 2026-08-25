@@ -51,6 +51,63 @@
         </h2>
         <p class="mt-1 text-sm text-[#6e6e73]">Every domain this app has looked up so far.</p>
 
+        <!-- Filters & sort -->
+        <div class="mt-5 rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label class="flex flex-col gap-1 text-xs font-medium text-[#6e6e73]">
+              Domain contains
+              <input v-model="domainSearch" type="text" placeholder="example.com"
+                class="rounded-lg border border-black/10 px-3 py-2 text-sm text-[#1d1d1f] transition-colors focus:border-accent/50 focus:outline-none" />
+            </label>
+            <label class="flex flex-col gap-1 text-xs font-medium text-[#6e6e73]">
+              TLD
+              <input v-model="tldFilter" type="text" placeholder="com"
+                class="rounded-lg border border-black/10 px-3 py-2 text-sm text-[#1d1d1f] transition-colors focus:border-accent/50 focus:outline-none" />
+            </label>
+            <label class="flex flex-col gap-1 text-xs font-medium text-[#6e6e73]">
+              DR min
+              <input v-model="drMin" type="number" min="0" max="100" placeholder="0"
+                class="rounded-lg border border-black/10 px-3 py-2 text-sm text-[#1d1d1f] transition-colors focus:border-accent/50 focus:outline-none" />
+            </label>
+            <label class="flex flex-col gap-1 text-xs font-medium text-[#6e6e73]">
+              DR max
+              <input v-model="drMax" type="number" min="0" max="100" placeholder="100"
+                class="rounded-lg border border-black/10 px-3 py-2 text-sm text-[#1d1d1f] transition-colors focus:border-accent/50 focus:outline-none" />
+            </label>
+            <label class="flex flex-col gap-1 text-xs font-medium text-[#6e6e73]">
+              Checked from
+              <input v-model="checkedFrom" type="date"
+                class="rounded-lg border border-black/10 px-3 py-2 text-sm text-[#1d1d1f] transition-colors focus:border-accent/50 focus:outline-none" />
+            </label>
+            <label class="flex flex-col gap-1 text-xs font-medium text-[#6e6e73]">
+              Checked to
+              <input v-model="checkedTo" type="date"
+                class="rounded-lg border border-black/10 px-3 py-2 text-sm text-[#1d1d1f] transition-colors focus:border-accent/50 focus:outline-none" />
+            </label>
+            <label class="flex flex-col gap-1 text-xs font-medium text-[#6e6e73]">
+              Sort by
+              <select v-model="sortBy"
+                class="rounded-lg border border-black/10 px-3 py-2 text-sm text-[#1d1d1f] transition-colors focus:border-accent/50 focus:outline-none">
+                <option value="checked_at">Checked on</option>
+                <option value="domain">Domain</option>
+                <option value="dr">DR</option>
+              </select>
+            </label>
+            <label class="flex flex-col gap-1 text-xs font-medium text-[#6e6e73]">
+              Direction
+              <select v-model="sortDir"
+                class="rounded-lg border border-black/10 px-3 py-2 text-sm text-[#1d1d1f] transition-colors focus:border-accent/50 focus:outline-none">
+                <option value="desc">Descending</option>
+                <option value="asc">Ascending</option>
+              </select>
+            </label>
+          </div>
+          <button v-if="hasActiveFilters" type="button"
+            class="mt-3 text-sm text-accent hover:underline" @click="clearFilters">
+            Clear filters
+          </button>
+        </div>
+
         <div class="mt-5 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm">
           <table class="w-full text-sm border-collapse">
             <thead>
@@ -157,6 +214,25 @@ const domainsPage = ref(1);
 const totalPages = ref(1);
 const totalDomains = ref(0);
 
+const domainSearch = ref("");
+const tldFilter = ref("");
+const drMin = ref("");
+const drMax = ref("");
+const checkedFrom = ref("");
+const checkedTo = ref("");
+const sortBy = ref<"checked_at" | "domain" | "dr">("checked_at");
+const sortDir = ref<"asc" | "desc">("desc");
+
+const hasActiveFilters = computed(
+  () =>
+    !!domainSearch.value ||
+    !!tldFilter.value ||
+    !!drMin.value ||
+    !!drMax.value ||
+    !!checkedFrom.value ||
+    !!checkedTo.value
+);
+
 async function loadDomains(page: number) {
   domainsLoading.value = true;
   try {
@@ -165,7 +241,19 @@ async function loadDomains(page: number) {
       page: number;
       totalPages: number;
       total: number;
-    }>("/api/domains", { query: { page } });
+    }>("/api/domains", {
+      query: {
+        page,
+        sortBy: sortBy.value !== "checked_at" ? sortBy.value : undefined,
+        sortDir: sortDir.value !== "desc" ? sortDir.value : undefined,
+        domain: domainSearch.value.trim() || undefined,
+        tld: tldFilter.value.trim() || undefined,
+        drMin: drMin.value || undefined,
+        drMax: drMax.value || undefined,
+        checkedFrom: checkedFrom.value || undefined,
+        checkedTo: checkedTo.value || undefined,
+      },
+    });
 
     domains.value = res.domains;
     domainsPage.value = res.page;
@@ -185,6 +273,25 @@ function goToPage(page: number) {
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString();
+}
+
+let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+function debouncedReload() {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => loadDomains(1), 350);
+}
+
+watch([domainSearch, tldFilter, drMin, drMax], debouncedReload);
+watch([checkedFrom, checkedTo, sortBy, sortDir], () => loadDomains(1));
+
+function clearFilters() {
+  domainSearch.value = "";
+  tldFilter.value = "";
+  drMin.value = "";
+  drMax.value = "";
+  checkedFrom.value = "";
+  checkedTo.value = "";
+  loadDomains(1);
 }
 
 onMounted(() => loadDomains(1));

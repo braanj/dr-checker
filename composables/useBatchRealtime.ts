@@ -3,7 +3,6 @@
 // This is the "processing state synced with the server" requirement — no
 // client-side polling loop needed.
 
-import { onUpdated } from "vue";
 import { useSupabase } from "./useSupabase";
 
 export interface UrlRow {
@@ -86,10 +85,6 @@ export function useBatchRealtime(batchId: string) {
 
   onMounted(async () => {
     await loadInitial();
-    subscribe();
-  });
-
-  onUpdated(async () => {
     subscribe();
   });
 
