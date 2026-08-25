@@ -109,29 +109,31 @@
         </div>
 
         <div class="mt-5 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm">
-          <table class="w-full text-sm border-collapse">
-            <thead>
-              <tr class="text-left text-[#6e6e73] border-b border-black/5">
-                <th class="py-3 px-4 font-medium">Domain</th>
-                <th class="py-3 px-4 font-medium">DR</th>
-                <th class="py-3 px-4 font-medium">Checked on</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="domainsLoading">
-                <td colspan="3" class="py-8 px-4 text-center text-[#86868b]">Loading…</td>
-              </tr>
-              <tr v-else-if="domains.length === 0">
-                <td colspan="3" class="py-8 px-4 text-center text-[#86868b]">No domains checked yet.</td>
-              </tr>
-              <tr v-for="d in domains" :key="d.domain"
-                class="border-b border-black/5 last:border-0 transition-colors hover:bg-black/[0.02]">
-                <td class="py-2.5 px-4">{{ d.domain }}</td>
-                <td class="py-2.5 px-4 font-medium">{{ d.dr ?? "—" }}</td>
-                <td class="py-2.5 px-4 text-[#6e6e73]">{{ formatDate(d.checked_at) }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[480px] text-sm border-collapse table-fixed">
+              <thead>
+                <tr class="text-left text-[#6e6e73] border-b border-black/5">
+                  <th class="py-3 px-4 font-medium">Domain</th>
+                  <th class="w-20 py-3 px-4 font-medium">DR</th>
+                  <th class="w-40 py-3 px-4 font-medium">Checked on</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="domainsLoading">
+                  <td colspan="3" class="py-8 px-4 text-center text-[#86868b]">Loading…</td>
+                </tr>
+                <tr v-else-if="domains.length === 0">
+                  <td colspan="3" class="py-8 px-4 text-center text-[#86868b]">No domains checked yet.</td>
+                </tr>
+                <tr v-for="d in domains" :key="d.domain"
+                  class="border-b border-black/5 last:border-0 transition-colors hover:bg-black/[0.02]">
+                  <td class="py-2.5 px-4 break-all">{{ d.domain }}</td>
+                  <td class="py-2.5 px-4 font-medium">{{ d.dr ?? "—" }}</td>
+                  <td class="py-2.5 px-4 text-[#6e6e73]">{{ formatDate(d.checked_at) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div v-if="totalPages > 1" class="mt-4 flex items-center justify-between text-sm">
