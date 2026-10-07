@@ -19,5 +19,8 @@
     "@types/papaparse": "^5.3.14",
     "eslint": "^10.6.0",
     "vitest": "^3.2.7"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

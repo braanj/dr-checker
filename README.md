@@ -119,4 +119,4 @@ tests/                     Vitest unit tests (npm test)
    - `SUPABASE_URL`, `SUPABASE_ANON_KEY` (public, client-side)
    - `SUPABASE_SERVICE_ROLE_KEY` (server-only — all table access goes
      through it, since the tables have no anon policies)
-8. `npm install && npm run dev`; `npm test` runs the unit tests.
+8. Use Node ≥ 22 (`nvm use` reads `.nvmrc`), then `npm install && npm run dev`; `npm test` runs the unit tests.

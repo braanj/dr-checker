@@ -17,6 +17,8 @@ npm test          # vitest (pure server/worker logic in tests/)
 
 There's no lint script (`eslint` is a devDependency but has no script or config yet). `deno check supabase/functions/process-queue/index.ts` type-checks the edge function.
 
+Requires **Node ≥ 22** (`.nvmrc` pins 24; run `nvm use`): `@supabase/supabase-js` needs the native `WebSocket` global at `createClient()` time, even on the server, and Node 20 fails every Supabase-backed route with "Node.js 20 detected without native WebSocket support".
+
 Env vars (`.env`, see `.env.example`): `SUPABASE_URL`, `SUPABASE_ANON_KEY` (public), `SUPABASE_SERVICE_ROLE_KEY` (server-only). The Supabase edge function separately needs `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and `AHREFS_DR_RATING`, set via `supabase secrets`. Hosting is Netlify (serverless Nitro), so no state is kept in memory between requests.
 
 Supabase-side setup/deploy (not run by npm scripts):
