@@ -1,8 +1,7 @@
-// Public (no auth required) — powers the "previously processed domains"
-// table on the upload page. Reads from the domain_summary view (one row
-// per unique domain, most recent DR + check date) via the service role
-// client, since this is intentionally a cross-user, app-wide history and
-// not gated by the per-user RLS policies on `urls`.
+// Public (no auth required): powers the domain directory on the home page.
+// Reads the `domains` table (one row per domain, latest DR + check date)
+// via the service-role client, since the table has no anon policies.
+// Only 'ok' rows are listed; 'no_data' rows are cache-only.
 
 import { supabaseAdmin } from "../utils/supabaseAdmin";
 
@@ -57,7 +56,10 @@ export default defineEventHandler(async (event) => {
 
   const admin = supabaseAdmin();
 
-  let q = admin.from("domain_summary").select("domain, dr, checked_at", { count: "exact" });
+  let q = admin
+    .from("domains")
+    .select("domain, dr, checked_at", { count: "exact" })
+    .eq("status", "ok");
 
   if (domainFilter) q = q.ilike("domain", `%${escapeLike(domainFilter)}%`);
   // Suffix match only (last dot-separated label onward) — not eTLD-aware,
