@@ -24,22 +24,3 @@ export function normalizeDomain(input: string): string | null {
     return null;
   }
 }
-
-const ADJECTIVES = ["swift", "bright", "quiet", "brave", "calm", "keen", "bold", "clear"];
-const NOUNS = ["falcon", "harbor", "cedar", "comet", "meadow", "river", "summit", "quartz"];
-
-export function generateCredentials() {
-  const adjective = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
-  const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
-  const suffix = Math.floor(1000 + Math.random() * 9000);
-  const email = `${adjective}.${noun}.${suffix}@dr-checker.local`;
-
-  // 16-char random password from a safe charset
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
-  let password = "";
-  for (let i = 0; i < 16; i++) {
-    password += chars[Math.floor(Math.random() * chars.length)];
-  }
-
-  return { email, password };
-}

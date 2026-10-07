@@ -1,6 +1,6 @@
-// Service-role client for server routes only. Bypasses RLS — used to create
-// auth users and insert batch/url rows on the user's behalf. NEVER import
-// this in client code.
+// Service-role client for server routes only. Bypasses RLS — every read and
+// write of batches/urls/domains goes through it, since those tables have no
+// anon policies. NEVER import this in client code.
 
 import { createClient } from "@supabase/supabase-js";
 import { useRuntimeConfig } from "#imports";
