@@ -2118,6 +2118,7 @@ The migration and the new code must go live together: the old app breaks against
 2. SQL editor: run `supabase/migrations/20261007000000_domain_directory.sql`, then the verification queries in Task 3 Step 3.
 3. Deploy the worker: `supabase functions deploy process-queue --no-verify-jwt` (install the CLI first: `brew install supabase/tap/supabase`). The `_shared/` folder is bundled automatically.
 4. Deploy to Netlify, then run Task 7 Step 4 against production, plus:
+   - type `a.com, https://www.a.com/x` (two rows, one domain, written in parallel) → the batch reaches `completed` (guards the `bump_batch_progress` row-lock fix);
    - 11 rapid submits from one IP → the 11th returns 429;
    - with the anon key: `curl "$SUPABASE_URL/rest/v1/urls?select=*" -H "apikey: $SUPABASE_ANON_KEY"` → `[]` (and the same for `batches` and `domains`);
    - in the SQL editor, `update urls set status='processing', claimed_at=now()-interval '5 minutes' where id='<some done row>'` → within ~10s the cron backstop reclaims it;

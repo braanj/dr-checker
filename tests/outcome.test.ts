@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   cacheWriteFor,
+  GAVE_UP_MESSAGE,
+  isExhausted,
   classifyAhrefsResponse,
   urlUpdateFor,
 } from "../supabase/functions/process-queue/outcome";
@@ -88,5 +90,18 @@ describe("urlUpdateFor", () => {
       });
     }
     expect(urlUpdateFor(transient, 4, null, now)).toMatchObject({ status: "error" });
+  });
+});
+
+describe("isExhausted", () => {
+  it("gives up only once a reclaim pushes attempts past the max", () => {
+    expect(isExhausted(3)).toBe(false);
+    expect(isExhausted(4)).toBe(true);
+  });
+
+  it("finalizes an exhausted row without a fetch: stale DR if known, else error", () => {
+    const gaveUp = { kind: "transient", error: GAVE_UP_MESSAGE } as const;
+    expect(urlUpdateFor(gaveUp, 4, staleOk, now)).toMatchObject({ status: "done", source: "stale", dr: 40 });
+    expect(urlUpdateFor(gaveUp, 4, null, now)).toMatchObject({ status: "error", error_message: GAVE_UP_MESSAGE });
   });
 });

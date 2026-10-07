@@ -62,6 +62,8 @@ export async function createCheck(opts: {
     const chunk = planned.slice(i, i + INSERT_CHUNK).map((p) => ({ batch_id: batch.id, ...p }));
     const { error: insertError } = await admin.from("urls").insert(chunk);
     if (insertError) {
+      // Don't leave a batch that can never complete; rows cascade with it.
+      await admin.from("batches").delete().eq("id", batch.id);
       throw createError({ statusCode: 500, statusMessage: `Failed to insert URLs: ${insertError.message}` });
     }
   }

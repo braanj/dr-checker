@@ -6,6 +6,14 @@ import { NO_DATA_MESSAGE, type DomainCacheRow, type DomainStatus } from "../_sha
 
 export const MAX_ATTEMPTS = 3;
 export const BACKOFF_SECONDS = 30;
+export const GAVE_UP_MESSAGE = "Gave up after repeated worker failures";
+
+// A row past MAX_ATTEMPTS only gets here by being reclaimed after its
+// worker died mid-run (e.g. a hung fetch). Finalize it without calling
+// Ahrefs again, or it would be retried forever.
+export function isExhausted(attempts: number): boolean {
+  return attempts > MAX_ATTEMPTS;
+}
 
 export type AhrefsResult =
   | { kind: "ok"; dr: number }

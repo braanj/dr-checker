@@ -99,7 +99,12 @@ declare
   v_processed integer;
 begin
   if (tg_op = 'UPDATE' and old.status <> new.status and new.status in ('done', 'error')) then
-    select total_urls into v_total from public.batches where id = new.batch_id;
+    -- Lock the batch row first: concurrent url updates of the same batch
+    -- then serialize here, and the count below (a fresh READ COMMITTED
+    -- snapshot taken after the lock) sees the other transaction's row.
+    -- Without it two parallel updates can both count n-1 and leave the
+    -- batch stuck at "processing" forever.
+    select total_urls into v_total from public.batches where id = new.batch_id for update;
 
     select count(*) into v_processed
     from public.urls

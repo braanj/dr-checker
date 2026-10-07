@@ -12,7 +12,14 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { cachedUrlFields, isFresh, type DomainCacheRow } from "../_shared/cache.ts";
-import { cacheWriteFor, classifyAhrefsResponse, urlUpdateFor, type AhrefsResult } from "./outcome.ts";
+import {
+  cacheWriteFor,
+  classifyAhrefsResponse,
+  GAVE_UP_MESSAGE,
+  isExhausted,
+  urlUpdateFor,
+  type AhrefsResult,
+} from "./outcome.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -20,6 +27,7 @@ const AHREFS_DR_RATING_KEY = Deno.env.get("AHREFS_DR_RATING")!;
 
 const CLAIM_SIZE = 5; // urls claimed per invocation, keep small = gentle on Ahrefs' rate limit
 const AHREFS_DELAY_MS = 300; // spacing between outbound Ahrefs calls
+const AHREFS_TIMEOUT_MS = 20_000; // a hung call must not outlive the invocation
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
@@ -42,6 +50,7 @@ async function fetchDomainRating(domain: string): Promise<AhrefsResult> {
         Accept: "application/json",
         Authorization: `Bearer ${AHREFS_DR_RATING_KEY}`,
       },
+      signal: AbortSignal.timeout(AHREFS_TIMEOUT_MS),
     });
     const body = res.ok ? await res.json().catch(() => null) : null;
     return classifyAhrefsResponse(res.status, body);
@@ -94,6 +103,14 @@ Deno.serve(async () => {
       continue;
     }
 
+    const exhausted = domainRows.filter((row) => isExhausted(row.attempts));
+    for (const row of exhausted) {
+      const gaveUp: AhrefsResult = { kind: "transient", error: GAVE_UP_MESSAGE };
+      writes.push(updateUrl(row.id, urlUpdateFor(gaveUp, row.attempts, previous, new Date())));
+    }
+    const live = domainRows.filter((row) => !isExhausted(row.attempts));
+    if (live.length === 0) continue;
+
     if (calledAhrefs) await sleep(AHREFS_DELAY_MS);
     calledAhrefs = true;
 
@@ -112,7 +129,7 @@ Deno.serve(async () => {
       );
     }
 
-    for (const row of domainRows) {
+    for (const row of live) {
       writes.push(updateUrl(row.id, urlUpdateFor(result, row.attempts, previous, checkedAt)));
     }
   }

@@ -36,6 +36,12 @@ update public.urls
 set source = 'live', checked_at = updated_at
 where status = 'done' and source is null;
 
+-- rows the previous worker left stuck in 'processing' have no claimed_at;
+-- give them one so the 2-minute reclaim below picks them up
+update public.urls
+set claimed_at = updated_at
+where status = 'processing' and claimed_at is null;
+
 drop index if exists public.idx_urls_status_pending;
 create index if not exists idx_urls_claimable
   on public.urls (status, available_at)
@@ -54,7 +60,35 @@ delete from auth.users where email like '%@dr-checker.local';
 -- 4. view replaced by the domains table --------------------------------------
 drop view if exists public.domain_summary;
 
--- 5. claim: available_at gating + reclaim of stuck rows ---------------------
+-- 5. progress rollup: lock the batch row before counting (lost-update fix)
+create or replace function public.bump_batch_progress()
+returns trigger language plpgsql as $$
+declare
+  v_total     integer;
+  v_processed integer;
+begin
+  if (tg_op = 'UPDATE' and old.status <> new.status and new.status in ('done', 'error')) then
+    -- Lock the batch row first: concurrent url updates of the same batch
+    -- then serialize here, and the count below (a fresh READ COMMITTED
+    -- snapshot taken after the lock) sees the other transaction's row.
+    -- Without it two parallel updates can both count n-1 and leave the
+    -- batch stuck at "processing" forever.
+    select total_urls into v_total from public.batches where id = new.batch_id for update;
+
+    select count(*) into v_processed
+    from public.urls
+    where batch_id = new.batch_id and status in ('done', 'error');
+
+    update public.batches
+    set processed_urls = v_processed,
+        status = case when v_processed >= v_total then 'completed' else 'processing' end
+    where id = new.batch_id;
+  end if;
+  return new;
+end;
+$$;
+
+-- 6. claim: available_at gating + reclaim of stuck rows ---------------------
 drop function if exists public.claim_pending_urls(integer);
 create function public.claim_pending_urls(p_limit integer default 5)
 returns table (id uuid, domain text, attempts integer)
@@ -80,7 +114,7 @@ end;
 $$;
 revoke execute on function public.claim_pending_urls(integer) from public, anon, authenticated;
 
--- 6. per-IP rate limiting ------------------------------------------------------
+-- 7. per-IP rate limiting ------------------------------------------------------
 create table if not exists public.check_requests (
   id         bigint generated always as identity primary key,
   ip         text not null,
@@ -113,7 +147,7 @@ end;
 $$;
 revoke execute on function public.register_check_request(text, integer) from public, anon, authenticated;
 
--- 7. live sync: broadcast instead of postgres_changes -----------------------
+-- 8. live sync: broadcast instead of postgres_changes -----------------------
 create or replace function public.broadcast_url_change()
 returns trigger
 language plpgsql
@@ -187,7 +221,7 @@ $$;
 
 commit;
 
--- 8. cleanup job (outside the transaction: pg_cron manages its own) --------
+-- 9. cleanup job (outside the transaction: pg_cron manages its own) --------
 select cron.unschedule(jobid) from cron.job where jobname = 'check-requests-cleanup';
 select cron.schedule(
   'check-requests-cleanup',
