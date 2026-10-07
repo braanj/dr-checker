@@ -3,12 +3,10 @@
     <!-- Hero -->
     <section class="bg-hero-radial px-4 pb-14 pt-16 text-center sm:pb-20 sm:pt-24">
       <h1 class="text-4xl font-semibold tracking-tight text-[#1d1d1f] sm:text-5xl">
-        Bulk Domain Rating Checker
+        Domain Rating Checker
       </h1>
       <p class="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-[#6e6e73]">
-        Upload a CSV of URLs — one per line, or a column named <code
-          class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">url</code>.
-        We'll create an account for you automatically and check each domain's Ahrefs DR.
+        Check the Ahrefs DR of any domain — type a few, or upload a CSV of up to 1,000.
         <NuxtLink class="text-accent hover:underline" to="/docs">
           Find out how to use it.
         </NuxtLink>
@@ -16,40 +14,48 @@
     </section>
 
     <div class="mx-auto max-w-2xl px-4 pb-24">
-      <!-- Upload card -->
       <form class="space-y-4" @submit.prevent="onSubmit">
-        <label
+        <textarea v-if="mode === 'typed'" v-model="domainsText" rows="4"
+          placeholder="example.com, another-site.org&#10;one per line or comma-separated (max 100)"
+          aria-label="Domains to check"
+          class="w-full rounded-2xl border border-black/10 bg-white p-4 text-[15px] text-[#1d1d1f] shadow-sm transition-colors focus:border-accent/50 focus:outline-none" />
+
+        <label v-else
           class="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-black/15 bg-white p-12 text-center shadow-sm transition-colors cursor-pointer hover:border-accent/50 hover:bg-accent-light/40">
           <span class="text-[15px] font-medium text-[#1d1d1f]">
             {{ file ? file.name : "Click to choose a CSV file" }}
           </span>
-          <span class="text-xs text-[#86868b]">Max 5,000 URLs</span>
+          <span class="text-xs text-[#86868b]">Max 1,000 URLs</span>
           <input type="file" accept=".csv,text/csv" class="hidden" @change="onFileChange" />
         </label>
 
-        <button type="submit" :disabled="!file || submitting"
+        <button type="submit" :disabled="!canSubmit || submitting"
           class="w-full rounded-full bg-accent px-4 py-3 text-[15px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-black/20">
-          {{ submitting ? "Uploading…" : "Analyze URLs" }}
+          {{ submitting ? "Checking…" : "Check DR" }}
         </button>
 
+        <div class="flex items-center justify-between text-sm">
+          <button type="button" class="text-accent hover:underline" @click="toggleMode">
+            {{ mode === "typed" ? "or upload a CSV" : "or type domains" }}
+          </button>
+          <span class="text-xs text-[#86868b]">Checked domains are added to the public directory below.</span>
+        </div>
+
         <p v-if="errorMsg" class="text-sm text-red-600">{{ errorMsg }}</p>
+        <p v-if="infoMsg" class="text-sm text-[#6e6e73]">{{ infoMsg }}</p>
       </form>
 
-      <!-- Auto-generated credentials, shown once -->
-      <div v-if="credentials" class="mt-6 rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
-        <NuxtLink :to="`/results/${batchId}`"
-          class="block w-full rounded-full bg-[#1d1d1f] px-4 py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-black">
-          View processing status →
-        </NuxtLink>
-      </div>
+      <!-- Inline results for small typed checks -->
+      <CheckResults v-if="inlineCheckId" :key="inlineCheckId" :batch-id="inlineCheckId" :show-title="false"
+        @completed="loadDomains(domainsPage)" />
 
-      <!-- Previously processed domains, across all users -->
+      <!-- Domain directory: every checked domain, across all users -->
       <div class="mt-20">
         <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">
-          Previously checked domains
+          Domain directory
           <span class="text-[#86868b]">({{ totalDomains }})</span>
         </h2>
-        <p class="mt-1 text-sm text-[#6e6e73]">Every domain this app has looked up so far.</p>
+        <p class="mt-1 text-sm text-[#6e6e73]">Every domain checked so far, with its latest DR.</p>
 
         <!-- Filters & sort -->
         <div class="mt-5 rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
@@ -157,13 +163,29 @@
 </template>
 
 <script setup lang="ts">
+import type { CheckResponse } from "~/server/utils/createCheck";
+
+const mode = ref<"typed" | "csv">("typed");
+const domainsText = ref("");
 const file = ref<File | null>(null);
 const submitting = ref(false);
 const errorMsg = ref("");
-const credentials = ref<{ email: string; password: string } | null>(null);
-const batchId = ref<string | null>(null);
+const infoMsg = ref("");
 
-const supabase = useSupabase();
+const route = useRoute();
+const router = useRouter();
+const inlineCheckId = computed(() =>
+  typeof route.query.check === "string" ? route.query.check : null,
+);
+
+const canSubmit = computed(() =>
+  mode.value === "typed" ? domainsText.value.trim().length > 0 : !!file.value,
+);
+
+function toggleMode() {
+  mode.value = mode.value === "typed" ? "csv" : "typed";
+  errorMsg.value = "";
+}
 
 function onFileChange(e: Event) {
   const target = e.target as HTMLInputElement;
@@ -171,38 +193,37 @@ function onFileChange(e: Event) {
 }
 
 async function onSubmit() {
-  if (!file.value) return;
+  if (!canSubmit.value) return;
   submitting.value = true;
   errorMsg.value = "";
+  infoMsg.value = "";
 
   try {
-    const formData = new FormData();
-    formData.append("file", file.value);
+    let body: FormData | { domains: string };
+    if (mode.value === "typed") {
+      body = { domains: domainsText.value };
+    } else {
+      body = new FormData();
+      body.append("file", file.value!);
+    }
 
-    const res = await $fetch<{
-      batchId: string;
-      totalUrls: number;
-      skipped: number;
-      credentials: { email: string; password: string };
-    }>("/api/upload", { method: "POST", body: formData });
+    const res = await $fetch<CheckResponse>("/api/check", { method: "POST", body });
 
-    credentials.value = res.credentials;
-    batchId.value = res.batchId;
+    if (res.skipped) infoMsg.value = `Skipped ${res.skipped} entr${res.skipped === 1 ? "y" : "ies"} that weren't valid domains.`;
 
-    // Sign the browser in as the newly created user so Realtime/RLS-gated
-    // reads on the results page are authorized for their own data.
-    await supabase.auth.signInWithPassword({
-      email: res.credentials.email,
-      password: res.credentials.password,
-    });
+    if (res.display === "inline") {
+      await router.replace({ query: { check: res.batchId } });
+    } else {
+      await navigateTo(`/results/${res.batchId}`);
+    }
   } catch (e: any) {
-    errorMsg.value = e?.data?.statusMessage ?? "Upload failed. Please try again.";
+    errorMsg.value = e?.data?.statusMessage ?? "Check failed. Please try again.";
   } finally {
     submitting.value = false;
   }
 }
 
-// ---- Previously processed domains table (paginated, 20/page) ----
+// ---- Domain directory table (paginated, 20/page) ----
 
 interface DomainRow {
   domain: string;
