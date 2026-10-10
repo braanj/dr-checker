@@ -1,17 +1,24 @@
-// Invoked by:
-//   1. A Database Webhook on `urls` INSERT (fast start)
-//   2. A pg_cron backstop every ~10s (see schema.sql)
-//
-// Each invocation claims a few due url rows (FOR UPDATE SKIP LOCKED, so
-// concurrent invocations never double-process; stuck 'processing' rows are
-// reclaimed after 2 minutes), groups them by domain, answers from the
-// `domains` cache when another batch fetched the domain recently, and
-// otherwise calls Ahrefs once per domain. Results go to the url rows and,
-// unless transient, to `domains`. Decisions live in ./outcome.ts; table
-// triggers roll batch progress up and broadcast changes to the browser.
+// Invoked (ADR 0002) by public.kick_worker() via pg_net, from:
+//   1. trg_urls_kick_worker — once per INSERT statement that adds pending rows
+//   2. pg_cron every 10 s — only when rows are due
+// Every call must carry `x-worker-secret` (see ./auth.ts). One call at a time
+// holds the worker_lease row and drains the queue (./drain.ts): claim 5 due
+// rows (FOR UPDATE SKIP LOCKED; stuck rows reclaimed after 2 minutes), answer
+// from the `domains` cache when fresh, otherwise call Ahrefs once per domain
+// with ≥300 ms between calls across the whole run. Decisions live in
+// ./outcome.ts; table triggers roll batch progress up and broadcast changes.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { cachedUrlFields, isFresh, type DomainCacheRow } from "../_shared/cache.ts";
+import { checkWorkerSecret } from "./auth.ts";
+import {
+  AHREFS_TIMEOUT_MS,
+  CLAIM_SIZE,
+  drain,
+  LEASE_TTL_SECONDS,
+  type ClaimedRow,
+  type DrainDeps,
+} from "./drain.ts";
 import {
   cacheWriteFor,
   classifyAhrefsResponse,
@@ -24,20 +31,13 @@ import {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const AHREFS_DR_RATING_KEY = Deno.env.get("AHREFS_DR_RATING")!;
-
-const CLAIM_SIZE = 5; // urls claimed per invocation, keep small = gentle on Ahrefs' rate limit
-const AHREFS_DELAY_MS = 300; // spacing between outbound Ahrefs calls
-const AHREFS_TIMEOUT_MS = 20_000; // a hung call must not outlive the invocation
+const WORKER_SECRET = Deno.env.get("WORKER_SECRET");
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
 
-type ClaimedRow = { id: string; domain: string; attempts: number };
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
 async function fetchDomainRating(domain: string): Promise<AhrefsResult> {
   const url = `https://api.ahrefs.com/v3/public/domain-rating-free?target=${encodeURIComponent(
@@ -64,23 +64,9 @@ async function updateUrl(id: string, fields: object) {
   if (error) console.error("url update failed", id, error.message);
 }
 
-Deno.serve(async () => {
-  // 1. Claim due rows atomically
-  const { data: claimed, error: claimError } = await supabase.rpc("claim_pending_urls", {
-    p_limit: CLAIM_SIZE,
-  });
-
-  if (claimError) {
-    console.error("claim error", claimError);
-    return new Response(JSON.stringify({ error: claimError.message }), { status: 500 });
-  }
-
-  const rows = (claimed ?? []) as ClaimedRow[];
-  if (rows.length === 0) {
-    return new Response(JSON.stringify({ processed: 0 }), { status: 200 });
-  }
-
-  // 2. Group by domain and load what the cache knows about them
+// One claimed batch: group by domain, answer fresh cache hits, finalize
+// exhausted rows, otherwise one paced Ahrefs call per domain.
+async function processBatch(rows: ClaimedRow[], pace: () => Promise<void>) {
   const byDomain = new Map<string, ClaimedRow[]>();
   for (const row of rows) byDomain.set(row.domain, [...(byDomain.get(row.domain) ?? []), row]);
 
@@ -91,9 +77,7 @@ Deno.serve(async () => {
   if (cacheError) console.error("cache read failed, calling Ahrefs for all", cacheError.message);
   const cache = new Map(((cacheRows ?? []) as DomainCacheRow[]).map((c) => [c.domain, c]));
 
-  // 3. Resolve each domain: fresh cache hit, or one Ahrefs call
   const writes: PromiseLike<unknown>[] = [];
-  let calledAhrefs = false;
 
   for (const [domain, domainRows] of byDomain) {
     const previous = cache.get(domain) ?? null;
@@ -111,9 +95,7 @@ Deno.serve(async () => {
     const live = domainRows.filter((row) => !isExhausted(row.attempts));
     if (live.length === 0) continue;
 
-    if (calledAhrefs) await sleep(AHREFS_DELAY_MS);
-    calledAhrefs = true;
-
+    await pace();
     const result = await fetchDomainRating(domain);
     const checkedAt = new Date();
 
@@ -135,6 +117,40 @@ Deno.serve(async () => {
   }
 
   await Promise.all(writes);
+}
 
-  return new Response(JSON.stringify({ processed: rows.length }), { status: 200 });
+Deno.serve(async (req) => {
+  const auth = checkWorkerSecret(req.headers.get("x-worker-secret"), WORKER_SECRET);
+  if (!auth.ok) return json({ error: auth.error }, auth.status);
+
+  const holder = crypto.randomUUID();
+  const deps: DrainDeps = {
+    now: () => Date.now(),
+    sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    acquireLease: async () => {
+      const { data, error } = await supabase.rpc("acquire_worker_lease", {
+        p_holder: holder,
+        p_ttl_seconds: LEASE_TTL_SECONDS,
+      });
+      if (error) console.error("lease acquire failed", error.message);
+      return !error && data === true;
+    },
+    releaseLease: async () => {
+      const { error } = await supabase.rpc("release_worker_lease", { p_holder: holder });
+      if (error) console.error("lease release failed (expires in 60 s)", error.message);
+    },
+    claim: async () => {
+      const { data, error } = await supabase.rpc("claim_pending_urls", { p_limit: CLAIM_SIZE });
+      if (error) throw new Error(`claim failed: ${error.message}`);
+      return (data ?? []) as ClaimedRow[];
+    },
+    processBatch,
+  };
+
+  try {
+    return json(await drain(deps));
+  } catch (err) {
+    console.error("drain failed", err);
+    return json({ error: String(err) }, 500);
+  }
 });

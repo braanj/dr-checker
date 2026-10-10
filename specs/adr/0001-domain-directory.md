@@ -35,6 +35,8 @@ Each `urls` row records `source` ∈ `live | cache | stale | no_data` and `check
 
 ### Processing
 
+> **Superseded in part by [ADR 0002](0002-worker-trigger-and-secret.md):** the per-row webhook and the cron backstop were replaced by a statement-level trigger plus a single paced drain loop, and the worker endpoint is now protected by a shared secret kept in Vault.
+
 - `/api/check` resolves fresh cache hits at insert time (`done/cache`, or `error/no_data`) and queues only the rest as `pending`. Because `bump_batch_progress` fires on UPDATE only, the API seeds `batches.processed_urls` with the pre-resolved count, and sets `status = 'completed'` when nothing is queued.
 - The `process-queue` edge function checks `domains` for a fresh row before calling Ahrefs (another batch may have just fetched it), and upserts `domains` after each definitive result.
 - Transient failures re-queue the row: `attempts++`, `available_at = now() + 30s × attempts`. After **3** attempts → `done/stale` if a stale value exists, else `error`.
