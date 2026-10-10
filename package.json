@@ -6,7 +6,9 @@
     "dev": "nuxt dev",
     "build": "nuxt build",
     "preview": "nuxt preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "nuxi typecheck",
+    "gen:types": "npx -y supabase@2.109.0 gen types typescript --project-id jwlpauxspwybjkxxujvc --schema public > supabase/functions/_shared/database.types.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
@@ -18,7 +20,9 @@
     "@nuxtjs/tailwindcss": "^6.12.0",
     "@types/papaparse": "^5.3.14",
     "eslint": "^10.6.0",
-    "vitest": "^3.2.7"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7",
+    "vue-tsc": "^2.2.12"
   },
   "engines": {
     "node": ">=22"

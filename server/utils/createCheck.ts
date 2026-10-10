@@ -37,6 +37,7 @@ export async function createCheck(opts: {
     if (error) {
       throw createError({ statusCode: 500, statusMessage: `Failed to read cache: ${error.message}` });
     }
+    // `status` is text + CHECK in Postgres, so the generated type is `string`.
     cache.push(...((data ?? []) as DomainCacheRow[]));
   }
 
@@ -69,7 +70,7 @@ export async function createCheck(opts: {
   }
 
   return {
-    batchId: batch.id as string,
+    batchId: batch.id,
     total,
     resolved,
     queued: total - resolved,

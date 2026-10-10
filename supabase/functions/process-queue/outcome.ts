@@ -3,6 +3,7 @@
 // in `domains`. Kept free of Deno/Supabase imports so Vitest can test it.
 
 import { NO_DATA_MESSAGE, type DomainCacheRow, type DomainStatus } from "../_shared/cache.ts";
+import type { TablesUpdate } from "../_shared/database.types.ts";
 
 export const MAX_ATTEMPTS = 3;
 export const BACKOFF_SECONDS = 30;
@@ -42,7 +43,7 @@ export function urlUpdateFor(
   attempts: number,
   previous: DomainCacheRow | null,
   now: Date,
-): Record<string, unknown> {
+): TablesUpdate<"urls"> {
   if (result.kind === "ok") {
     return { status: "done", dr: result.dr, source: "live", checked_at: now.toISOString(), error_message: null };
   }

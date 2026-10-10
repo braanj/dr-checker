@@ -10,6 +10,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { cachedUrlFields, isFresh, type DomainCacheRow } from "../_shared/cache.ts";
+import type { Database, TablesUpdate } from "../_shared/database.types.ts";
 import { checkWorkerSecret } from "./auth.ts";
 import {
   AHREFS_TIMEOUT_MS,
@@ -33,7 +34,7 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const AHREFS_DR_RATING_KEY = Deno.env.get("AHREFS_DR_RATING")!;
 const WORKER_SECRET = Deno.env.get("WORKER_SECRET");
 
-const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+const supabase = createClient<Database>(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
 
@@ -59,7 +60,7 @@ async function fetchDomainRating(domain: string): Promise<AhrefsResult> {
   }
 }
 
-async function updateUrl(id: string, fields: object) {
+async function updateUrl(id: string, fields: TablesUpdate<"urls">) {
   const { error } = await supabase.from("urls").update(fields).eq("id", id);
   if (error) console.error("url update failed", id, error.message);
 }
@@ -75,6 +76,7 @@ async function processBatch(rows: ClaimedRow[], pace: () => Promise<void>) {
     .select("domain, dr, status, checked_at")
     .in("domain", [...byDomain.keys()]);
   if (cacheError) console.error("cache read failed, calling Ahrefs for all", cacheError.message);
+  // `status` is text + CHECK in Postgres, so the generated type is `string`.
   const cache = new Map(((cacheRows ?? []) as DomainCacheRow[]).map((c) => [c.domain, c]));
 
   const writes: PromiseLike<unknown>[] = [];
@@ -142,7 +144,7 @@ Deno.serve(async (req) => {
     claim: async () => {
       const { data, error } = await supabase.rpc("claim_pending_urls", { p_limit: CLAIM_SIZE });
       if (error) throw new Error(`claim failed: ${error.message}`);
-      return (data ?? []) as ClaimedRow[];
+      return data ?? [];
     },
     processBatch,
   };
