@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { domainPageState, domainSeo, sparklinePath, type DomainView } from "../utils/domainView";
+import { domainPageState, domainSeo, formatDr, siteBase, sparklinePath, type DomainView } from "../utils/domainView";
+import { isoDate } from "../utils/checkedAgo";
 import { checkedAgo } from "../utils/checkedAgo";
 
 const view: DomainView = {
@@ -65,5 +66,25 @@ describe("domainPageState", () => {
     expect(domainPageState(null, { statusCode: 500 })).toBe("unavailable");
     expect(domainPageState(null, { statusCode: 503 })).toBe("unavailable");
     expect(domainPageState(null, {})).toBe("unavailable");
+  });
+});
+
+describe("formatDr / siteBase / isoDate", () => {
+  it("formats DR the same way everywhere (rounded)", () => {
+    expect(formatDr(91.6)).toBe("92");
+    expect(formatDr(45.5)).toBe("46");
+    expect(formatDr(0)).toBe("0");
+  });
+
+  it("strips trailing slashes from the site URL", () => {
+    expect(siteBase("https://s.test/")).toBe("https://s.test");
+    expect(siteBase("https://s.test//")).toBe("https://s.test");
+    expect(siteBase("https://s.test")).toBe("https://s.test");
+    expect(domainSeo(view, "https://s.test/").canonical).toBe("https://s.test/domain/example.com");
+  });
+
+  it("renders dates as a locale-independent UTC YYYY-MM-DD", () => {
+    expect(isoDate("2026-10-01T23:30:00-02:00")).toBe("2026-10-02");
+    expect(isoDate("2026-10-10T12:41:53.168+00:00")).toBe("2026-10-10");
   });
 });

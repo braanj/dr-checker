@@ -39,6 +39,25 @@ describe("fetchAllOkDomains", () => {
     };
     const rows = await fetchAllOkDomains(fake as never, 1000);
     expect(rows).toHaveLength(2500);
-    expect(ranges).toEqual([[0, 999], [1000, 1999], [2000, 2999]]);
+    expect(ranges).toEqual([[0, 999], [1000, 1999], [2000, 2999], [2500, 3499]]);
+  });
+});
+
+describe("fetchAllOkDomains with a smaller server-side row cap", () => {
+  it("keeps paging after a short page and stops only on an empty one", async () => {
+    const all = Array.from({ length: 1000 }, (_, i) => ({ domain: `d${i}.com`, checked_at: "2026-10-01T00:00:00Z" }));
+    const fake = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            order: () => ({
+              // server caps every response at 400 rows regardless of the range asked for
+              range: async (from: number, to: number) => ({ data: all.slice(from, Math.min(to + 1, from + 400)), error: null }),
+            }),
+          }),
+        }),
+      }),
+    };
+    expect(await fetchAllOkDomains(fake as never, 1000)).toHaveLength(1000);
   });
 });

@@ -35,6 +35,7 @@ supabase functions deploy process-queue --no-verify-jwt
 ```
 Also required:
 - run `scripts/provision-worker-secret.sh <project-ref>` once (and to rotate): it sets the function secret `WORKER_SECRET` and the Vault entries `worker_secret`/`worker_url`/`meta_worker_url` that `kick_worker()` and `kick_meta_worker()` use (ADR 0002/0003);
+- the `supabase_vault` extension enabled (default on Supabase; `kick_worker()`/`kick_meta_worker()` read their secrets from it);
 - Realtime set to allow public channels.
 
 ## Architecture

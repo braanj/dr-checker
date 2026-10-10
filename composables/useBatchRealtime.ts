@@ -7,6 +7,7 @@
 // snapshot.
 
 import { useSupabase } from "./useSupabase";
+import { POLL_INTERVAL_MS, shouldPoll } from "../utils/realtimePoll";
 
 export interface UrlRow {
   id: string;
@@ -44,6 +45,11 @@ export function useBatchRealtime(batchId: string) {
 
   let channel: ReturnType<typeof supabase.channel> | null = null;
   let liveBatch: Partial<BatchProgress> = {};
+  // polling fallback (utils/realtimePoll.ts): kicks in when the channel failed
+  // or stayed silent while the batch is unfinished
+  let lastBroadcastAt = Date.now();
+  let channelFailed = false;
+  let pollTimer: ReturnType<typeof setInterval> | null = null;
 
   function upsertUrl(row: UrlRow) {
     const idx = urls.value.findIndex((u) => u.id === row.id);
@@ -57,12 +63,18 @@ export function useBatchRealtime(batchId: string) {
       const timer = setTimeout(resolve, SUBSCRIBE_TIMEOUT_MS);
       channel = supabase
         .channel(`batch:${batchId}`, { config: { private: false } })
-        .on("broadcast", { event: "url" }, ({ payload }) => upsertUrl(payload as UrlRow))
+        .on("broadcast", { event: "url" }, ({ payload }) => {
+          lastBroadcastAt = Date.now();
+          upsertUrl(payload as UrlRow);
+        })
         .on("broadcast", { event: "batch" }, ({ payload }) => {
+          lastBroadcastAt = Date.now();
           liveBatch = { ...liveBatch, ...(payload as BatchProgress) };
           if (batch.value) batch.value = { ...batch.value, ...liveBatch };
         })
         .subscribe((status) => {
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") channelFailed = true;
+          if (status === "SUBSCRIBED") channelFailed = false;
           if (status !== "SUBSCRIBED" && status !== "CHANNEL_ERROR" && status !== "TIMED_OUT") return;
           clearTimeout(timer);
           resolve();
@@ -83,12 +95,34 @@ export function useBatchRealtime(batchId: string) {
     }
   }
 
+  // the snapshot is the truth while polling
+  async function refresh() {
+    try {
+      const res = await $fetch<{ batch: BatchRow; urls: UrlRow[] }>(`/api/status/${batchId}`);
+      urls.value = res.urls;
+      batch.value = res.batch;
+      liveBatch = {};
+    } catch {
+      // keep the last view; the next tick retries
+    }
+  }
+
   onMounted(async () => {
     await subscribe();
     await loadInitial();
+    lastBroadcastAt = Date.now();
+    pollTimer = setInterval(() => {
+      const status = batch.value?.status;
+      if (status === "completed" || status === "failed") {
+        if (pollTimer) clearInterval(pollTimer);
+        return;
+      }
+      if (shouldPoll({ status, channelFailed, lastBroadcastAt, now: Date.now() })) void refresh();
+    }, POLL_INTERVAL_MS);
   });
 
   onUnmounted(() => {
+    if (pollTimer) clearInterval(pollTimer);
     if (channel) supabase.removeChannel(channel);
   });
 
