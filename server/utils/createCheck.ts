@@ -4,7 +4,7 @@
 // url rows. Pending rows trigger the process-queue webhook on insert.
 
 import { supabaseAdmin } from "./supabaseAdmin";
-import { planUrlRows, resultsDisplay, type CheckRow, type CheckSource } from "./checkInput";
+import { initialBatchStatus, planUrlRows, resultsDisplay, type CheckRow, type CheckSource } from "./checkInput";
 import type { DomainCacheRow } from "../../supabase/functions/_shared/cache";
 
 const LOOKUP_CHUNK = 200; // keeps the `in (...)` filter well under URL length limits
@@ -50,7 +50,7 @@ export async function createCheck(opts: {
       filename: opts.label,
       total_urls: total,
       processed_urls: resolved,
-      status: resolved === total ? "completed" : "processing",
+      status: initialBatchStatus(planned),
     })
     .select("id")
     .single();

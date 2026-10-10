@@ -87,6 +87,15 @@ export function planUrlRows(
   return { planned, resolved };
 }
 
+// A batch is `pending` until the worker claims its first row (claim_pending_urls
+// flips it to `processing`). Fully cache-answered batches are finished at
+// insert time: `failed` when every row is an error, otherwise `completed` —
+// the same rule bump_batch_progress applies when the worker finishes one.
+export function initialBatchStatus(planned: PlannedUrl[]): "pending" | "completed" | "failed" {
+  if (planned.some((p) => p.status === "pending")) return "pending";
+  return planned.every((p) => p.status === "error") ? "failed" : "completed";
+}
+
 export function resultsDisplay(source: CheckSource, total: number): "inline" | "page" {
   return source === "typed" && total <= INLINE_MAX ? "inline" : "page";
 }

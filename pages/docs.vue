@@ -91,9 +91,10 @@ https://another-site.org,competitor</pre>
           The results show a progress bar (<code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">processed / total</code>) and an overall status:
         </p>
         <ul class="mt-2 space-y-1.5">
-          <li><span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium bg-black/5 text-[#6e6e73]">pending</span> — queued, not yet picked up</li>
+          <li><span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium bg-black/5 text-[#6e6e73]">pending</span> — queued behind other checks; nothing picked up yet</li>
           <li><span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium bg-accent-light text-accent">processing</span> — actively being checked</li>
           <li><span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">completed</span> — every URL has a result</li>
+          <li><span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-700">failed</span> — finished, but none of the domains could be checked (every row is an error)</li>
         </ul>
         <p class="mt-3">
           This updates automatically — there's nothing to click or refresh. Domains already in the
