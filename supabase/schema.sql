@@ -70,6 +70,15 @@ create table if not exists public.check_requests (
 );
 create index if not exists idx_check_requests_ip_created on public.check_requests (ip, created_at);
 
+-- One row per real Ahrefs reading (ADR 0003); written by the worker.
+create table if not exists public.domain_history (
+  id         bigint generated always as identity primary key,
+  domain     text not null,
+  dr         numeric not null,
+  checked_at timestamptz not null,
+  unique (domain, checked_at)  -- also serves "latest first per domain" (backward index scan)
+);
+
 -- keep `updated_at` fresh
 create or replace function public.set_updated_at()
 returns trigger language plpgsql as $$
@@ -215,6 +224,7 @@ alter table public.batches enable row level security;
 alter table public.urls enable row level security;
 alter table public.domains enable row level security;
 alter table public.check_requests enable row level security;
+alter table public.domain_history enable row level security;
 
 -- ----------------------------------------------------------------------------
 -- Live sync: broadcast client-facing fields to the public channel
