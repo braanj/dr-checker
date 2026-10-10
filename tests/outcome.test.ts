@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   cacheWriteFor,
   GAVE_UP_MESSAGE,
+  historyWriteFor,
   isExhausted,
   classifyAhrefsResponse,
   urlUpdateFor,
@@ -103,5 +104,17 @@ describe("isExhausted", () => {
     const gaveUp = { kind: "transient", error: GAVE_UP_MESSAGE } as const;
     expect(urlUpdateFor(gaveUp, 4, staleOk, now)).toMatchObject({ status: "done", source: "stale", dr: 40 });
     expect(urlUpdateFor(gaveUp, 4, null, now)).toMatchObject({ status: "error", error_message: GAVE_UP_MESSAGE });
+  });
+});
+
+describe("historyWriteFor", () => {
+  it("records every ok reading, including DR 0", () => {
+    expect(historyWriteFor({ kind: "ok", dr: 71 })).toEqual({ dr: 71 });
+    expect(historyWriteFor({ kind: "ok", dr: 0 })).toEqual({ dr: 0 });
+  });
+
+  it("never records no_data or transient results", () => {
+    expect(historyWriteFor({ kind: "no_data" })).toBeNull();
+    expect(historyWriteFor({ kind: "transient", error: "Ahrefs HTTP 429" })).toBeNull();
   });
 });

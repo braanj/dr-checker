@@ -37,6 +37,11 @@ export function cacheWriteFor(result: AhrefsResult): { dr: number | null; status
   return null;
 }
 
+// Only real readings become history; no_data and transient results never do.
+export function historyWriteFor(result: AhrefsResult): { dr: number } | null {
+  return result.kind === "ok" ? { dr: result.dr } : null;
+}
+
 // `attempts` includes the current try (claim_pending_urls increments it).
 export function urlUpdateFor(
   result: AhrefsResult,

@@ -24,6 +24,7 @@ import {
   cacheWriteFor,
   classifyAhrefsResponse,
   GAVE_UP_MESSAGE,
+  historyWriteFor,
   isExhausted,
   urlUpdateFor,
   type AhrefsResult,
@@ -109,6 +110,21 @@ async function processBatch(rows: ClaimedRow[], pace: () => Promise<void>) {
           .upsert({ domain, ...cacheWrite, checked_at: checkedAt.toISOString() })
           .then(({ error }) => {
             if (error) console.error("domains upsert failed", domain, error.message);
+          }),
+      );
+    }
+
+    const history = historyWriteFor(result);
+    if (history) {
+      writes.push(
+        supabase
+          .from("domain_history")
+          .upsert(
+            { domain, dr: history.dr, checked_at: checkedAt.toISOString() },
+            { onConflict: "domain,checked_at", ignoreDuplicates: true },
+          )
+          .then(({ error }) => {
+            if (error) console.error("domain_history insert failed", domain, error.message);
           }),
       );
     }
