@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "nuxt dev",
     "build": "nuxt build",
-    "preview": "nuxt preview"
+    "preview": "nuxt preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
@@ -16,6 +17,10 @@
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.12.0",
     "@types/papaparse": "^5.3.14",
-    "eslint": "^10.6.0"
+    "eslint": "^10.6.0",
+    "vitest": "^3.2.7"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

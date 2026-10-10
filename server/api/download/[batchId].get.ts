@@ -1,10 +1,19 @@
 import { supabaseAdmin } from "../../utils/supabaseAdmin";
 
-function toCsv(rows: Array<{ original_url: string; domain: string; dr: number | null; status: string }>) {
-  const header = "url,domain,domain_rating,status";
+type CsvRow = {
+  original_url: string;
+  domain: string;
+  dr: number | null;
+  status: string;
+  source: string | null;
+  checked_at: string | null;
+};
+
+function toCsv(rows: CsvRow[]) {
+  const header = "url,domain,domain_rating,status,source,checked_at";
   const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const lines = rows.map((r) =>
-    [escape(r.original_url), escape(r.domain), r.dr ?? "", r.status].join(",")
+    [escape(r.original_url), escape(r.domain), r.dr ?? "", r.status, r.source ?? "", r.checked_at ?? ""].join(","),
   );
   return [header, ...lines].join("\n");
 }
@@ -29,7 +38,7 @@ export default defineEventHandler(async (event) => {
 
   const { data: urls, error: urlsError } = await admin
     .from("urls")
-    .select("original_url, domain, dr, status")
+    .select("original_url, domain, dr, status, source, checked_at")
     .eq("batch_id", batchId)
     .order("created_at", { ascending: true });
 

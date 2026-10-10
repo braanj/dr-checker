@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
 
   const { data: urls, error: urlsError } = await admin
     .from("urls")
-    .select("id, original_url, domain, dr, status, error_message")
+    .select("id, original_url, domain, dr, status, error_message, source, checked_at")
     .eq("batch_id", batchId)
     .order("created_at", { ascending: true });
 
