@@ -150,6 +150,9 @@ https://another-site.org,competitor</pre>
           its latest DR and the date it was checked, 20 per page. You can filter by name, TLD, DR range
           and check date, and sort by any column. Domains Ahrefs has no data for aren't listed.
         </p>
+        <p class="mt-3">
+          Click a domain to open its page: current DR, DR history and a <strong>Re-check</strong> button.
+        </p>
       </section>
 
       <!-- Limits -->

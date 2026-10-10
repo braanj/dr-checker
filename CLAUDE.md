@@ -70,6 +70,8 @@ from public.batches b join public.urls u on u.batch_id = b.id
 group by b.id having b.processed_urls <> count(*) filter (where u.status in ('done','error'));
 ```
 
+**Domain pages (ADR 0003):** the worker also appends `domain_history` on every `ok` reading. `/domain/[domain]` is server-rendered from `/api/domain/[domain]`: 200 with SEO head tags and a CDN cache header only when the domain has an `ok` DR, otherwise 404 + `noindex` with a check button; non-canonical spellings 301 to `/domain/<normalized>`. `/sitemap.xml` (paged past PostgREST's 1,000-row cap) and `/robots.txt` are server routes.
+
 **Results display:** typed checks with ≤ 10 valid rows render inline on the home page at `/?check=<id>` (via `components/CheckResults.vue`). Typed checks of 11–100 rows and every CSV redirect to `/results/<id>`.
 
 ### Ahrefs integration and cache
@@ -99,5 +101,8 @@ There is no auth. Batches are anonymous, and the batch UUID in the results link 
 - `composables/useSupabase.ts`: anon-key browser client (used only for Realtime)
 - `composables/useBatchRealtime.ts`: the broadcast subscription hook
 - `components/CheckResults.vue`: the results table shared by the home page and `/results/[batchId]`
+- `server/api/domain/[domain].get.ts`, `pages/domain/[domain].vue`: domain pages
+- `server/routes/sitemap.xml.ts`, `server/routes/robots.txt.ts`, `server/utils/sitemap.ts`: crawling
+- `utils/` (auto-imported in the app): `domainPath`, `domainView` (SEO text, sparkline), `checkedAgo`, `retry`
 - `specs/adr/`: architecture decision records; `specs/`: implementation plans
 - `tests/`: Vitest unit tests
