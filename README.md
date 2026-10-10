@@ -20,7 +20,7 @@ that doubles as a 30-day cache, so repeat lookups are instant.
       │                               │  Supabase Postgres    │
       ├───────── triggers ────────────┤  batches/urls/domains │
       │          realtime.send()      └──────────┬────────────┘
-      │                                          │ NOTIFY (webhook) + pg_cron backstop
+      │                                          │ kick_worker(): trigger + pg_cron
       │                                          ▼
       │                               ┌───────────────────────┐
       └───────────────────────────────┤ Edge Function:        │
@@ -48,11 +48,16 @@ Instead:
   inserts) and returns immediately with the new batch id and whether to show
   the results inline (typed checks of up to 10 domains) or on a results page.
 - A Supabase **Edge Function** (`process-queue`) does the actual work. It's
-  invoked two ways so processing starts fast *and* survives retries/scaling:
-  1. **Database Webhook** fires it the instant new `urls` rows are inserted.
-  2. **pg_cron** calls it every 10s as a backstop. Together with
-     `claim_pending_urls()` reclaiming rows stuck in `processing` for more than
-     2 minutes, this recovers crashed or timed-out invocations.
+  started two ways, both through `public.kick_worker()`, so processing starts
+  fast *and* survives retries:
+  1. **Statement trigger** `trg_urls_kick_worker` starts it once per INSERT
+     that adds pending rows.
+  2. **pg_cron** calls `kick_worker()` every 10s, which only starts the worker
+     when rows are due (retries after backoff, rows stuck in `processing` for
+     more than 2 minutes).
+
+  Both send a shared secret held in Vault, and a single-row lease keeps one
+  paced drain loop at a time (ADR 0002).
 - Every batch's URLs land in the same `urls` table, so the queue naturally
   interleaves rows from different checks. Row claiming uses
   `FOR UPDATE SKIP LOCKED`, so concurrent invocations never process the same
@@ -111,12 +116,10 @@ tests/                     Vitest unit tests (npm test)
    ```
    supabase functions deploy process-queue --no-verify-jwt
    ```
-5. Create the Database Webhook: Dashboard → Database → Webhooks →
-   new webhook on `urls` INSERT → calls `process-queue`.
-6. Enable the cron backstop (inside `schema.sql`, using `pg_cron` +
-   `pg_net`, already wired to call the function URL every 10s).
-7. Copy `.env.example` to `.env` and fill in:
+5. Provision the worker secret:
+   `SUPABASE_ACCESS_TOKEN=... scripts/provision-worker-secret.sh <project-ref>`
+6. Copy `.env.example` to `.env` and fill in:
    - `SUPABASE_URL`, `SUPABASE_ANON_KEY` (public, client-side)
    - `SUPABASE_SERVICE_ROLE_KEY` (server-only — all table access goes
      through it, since the tables have no anon policies)
-8. Use Node ≥ 22 (`nvm use` reads `.nvmrc`), then `npm install && npm run dev`; `npm test` runs the unit tests.
+7. Use Node ≥ 22 (`nvm use` reads `.nvmrc`), then `npm install && npm run dev`; `npm test` runs the unit tests.

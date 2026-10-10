@@ -28,9 +28,8 @@ Supabase-side setup/deploy (not run by npm scripts):
 supabase functions deploy process-queue --no-verify-jwt
 ```
 Also required:
-- a Database Webhook (`urls` INSERT → `process-queue`) configured in the Supabase dashboard;
-- Realtime set to allow public channels;
-- the pg_cron backstop job at the bottom of `schema.sql` (it has `<PROJECT_REF>`/`<SERVICE_ROLE_KEY>` placeholders to fill in after deploy).
+- run `scripts/provision-worker-secret.sh <project-ref>` once (and to rotate): it sets the function secret `WORKER_SECRET` and the Vault entries `worker_secret`/`worker_url` that `kick_worker()` uses (ADR 0002);
+- Realtime set to allow public channels.
 
 ## Architecture
 
@@ -41,16 +40,16 @@ Browser --typed list / CSV--> POST /api/check (Nitro)
                                 |  (fresh cache hits inserted already done)
                                 v
                           Supabase Postgres
-                                |  NOTIFY (webhook) + pg_cron backstop (10s)
+                                |  kick_worker(): statement trigger + pg_cron (10s), x-worker-secret
                                 v
                    Edge Function: process-queue (Deno)
-                     - claims due urls (FOR UPDATE SKIP LOCKED, reclaims stuck rows)
+                     - one leased drain loop: claims 5 due urls at a time (SKIP LOCKED, reclaims stuck rows), ≥300 ms between Ahrefs calls, 120 s budget
                      - checks `domains` again, else calls Ahrefs (once per domain)
                      - updates url rows, upserts `domains`
 Browser <--Realtime broadcast `batch:<id>`-- triggers (realtime.send)
 ```
 
-**Why a Postgres queue + Edge Function instead of an in-process worker:** Nitro routes on most hosts don't keep running after the HTTP response is sent, so `/api/check` can't loop over a thousand URLs synchronously. It only does fast work (rate limit, cache lookup, row inserts) and returns immediately with `{ batchId, total, resolved, queued, skipped, display }`. All actual processing happens in the `process-queue` edge function, which is triggered two ways for speed and resilience: a Database Webhook on `urls` INSERT (fast start), and a pg_cron call every ~10s as a backstop.
+**Why a Postgres queue + Edge Function instead of an in-process worker:** Nitro routes on most hosts don't keep running after the HTTP response is sent, so `/api/check` can't loop over a thousand URLs synchronously. It only does fast work (rate limit, cache lookup, row inserts) and returns immediately with `{ batchId, total, resolved, queued, skipped, display }`. All actual processing happens in the `process-queue` edge function, which is triggered two ways for speed and resilience: the statement-level trigger `trg_urls_kick_worker` (once per INSERT that adds pending rows) and a pg_cron call every 10 s, both via `public.kick_worker()`, which only calls the function when rows are due and authenticates with a Vault-held shared secret. A single-row `worker_lease` keeps one drain loop at a time (ADR 0002).
 
 **Concurrency and recovery:** every check's URLs land in the same `urls` table and are processed by the same worker pool. `claim_pending_urls()` (in `schema.sql`) takes rows that are `pending` with `available_at <= now()`, plus rows stuck in `processing` for more than 2 minutes (`claimed_at`), so crashed invocations recover. It uses `FOR UPDATE SKIP LOCKED`, so concurrent invocations never double-process a row. Each claim increments `urls.attempts`.
 
