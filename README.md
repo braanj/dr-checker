@@ -62,10 +62,11 @@ Instead:
   interleaves rows from different checks. Row claiming uses
   `FOR UPDATE SKIP LOCKED`, so concurrent invocations never process the same
   URL twice.
-- The client never polls. DB triggers push each row change with
-  `realtime.send()` to the public broadcast channel `batch:<id>`, and the
-  browser subscribes to it. The tables themselves are not readable with the
-  anon key.
+- DB triggers push each row change with `realtime.send()` to the private
+  broadcast channel `batch:<id>`, and the browser subscribes to it (RLS lets
+  anon receive but never send). If websockets fail or go quiet, the page polls
+  `/api/status` until the batch finishes. The tables themselves are not
+  readable with the anon key.
 
 ### Ahrefs integration
 
@@ -110,8 +111,8 @@ tests/                     Vitest unit tests (npm test)
 1. `supabase init` / link this repo to your Supabase project.
 2. Fresh project: run `supabase/schema.sql` in the SQL editor. Existing
    project: run `supabase/migrations/20261007000000_domain_directory.sql`.
-3. Realtime settings: allow public channels (the app uses public broadcast
-   channels).
+3. Realtime: the app uses private broadcast channels (receive-only for anon
+   via the RLS policy in `schema.sql`); "Private channels only" may be enabled.
 4. Deploy the edge function:
    ```
    supabase functions deploy process-queue --no-verify-jwt

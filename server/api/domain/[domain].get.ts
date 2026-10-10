@@ -3,7 +3,7 @@
 
 import { supabaseAdmin } from "../../utils/supabaseAdmin";
 import { normalizeDomain } from "../../utils/domain";
-import type { DomainView } from "../../../utils/domainView";
+import { metaViewFrom, type DomainView } from "../../../utils/domainView";
 
 const HISTORY_LIMIT = 100;
 
@@ -46,16 +46,7 @@ export default defineEventHandler(async (event): Promise<DomainView> => {
   }
 
   const supabaseUrl = useRuntimeConfig().public.supabaseUrl as string;
-  const meta =
-    metaRow?.status === "ok"
-      ? {
-          title: metaRow.title,
-          description: metaRow.description,
-          favicon_url: metaRow.favicon_path
-            ? `${supabaseUrl}/storage/v1/object/public/favicons/${encodeURIComponent(metaRow.favicon_path)}`
-            : null,
-        }
-      : null;
+  const meta = metaViewFrom(metaRow, supabaseUrl);
 
   return { domain: row.domain, dr: row.dr, checked_at: row.checked_at, history: history ?? [], meta };
 });

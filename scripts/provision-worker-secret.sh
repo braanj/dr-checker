@@ -13,10 +13,17 @@ REF="${1:?usage: $0 <project-ref>}"
 : "${SUPABASE_ACCESS_TOKEN:?set SUPABASE_ACCESS_TOKEN}"
 
 SECRET="$(openssl rand -hex 32)"
+
+# The secret and the access token never appear in a process's argv (visible
+# in `ps`): they go through a private temp dir and stdin instead.
+TMP="$(mktemp -d)"
+chmod 700 "$TMP"
+trap 'rm -rf "$TMP"' EXIT
 URL="https://${REF}.supabase.co/functions/v1/process-queue"
 META_URL="https://${REF}.supabase.co/functions/v1/fetch-meta"
 
-npx -y supabase@2.109.0 secrets set --project-ref "$REF" "WORKER_SECRET=${SECRET}" >/dev/null
+( umask 077; printf 'WORKER_SECRET=%s\n' "$SECRET" > "$TMP/secrets.env" )
+npx -y supabase@2.109.0 secrets set --project-ref "$REF" --env-file "$TMP/secrets.env" >/dev/null
 echo "function secret WORKER_SECRET set"
 
 # Values are hex and a URL (no quotes), so plain literals are safe.
@@ -40,12 +47,17 @@ begin
 end
 \$\$;"
 
-STATUS="$(python3 -c 'import json,sys; print(json.dumps({"query": sys.argv[1]}))' "$SQL" \
+( umask 077; printf 'Authorization: Bearer %s\n' "$SUPABASE_ACCESS_TOKEN" > "$TMP/auth.header" )
+if ! STATUS="$(printf '%s' "$SQL" \
+  | python3 -c 'import json,sys; print(json.dumps({"query": sys.stdin.read()}))' \
   | curl -s -o /dev/null -w '%{http_code}' -X POST \
       "https://api.supabase.com/v1/projects/${REF}/database/query" \
-      -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+      -H @"$TMP/auth.header" \
       -H "Content-Type: application/json" \
-      --data-binary @-)"
+      --data-binary @-)"; then
+  echo "vault update failed: could not reach the Supabase Management API" >&2
+  exit 1
+fi
 
 if [[ "$STATUS" != 2* ]]; then
   echo "vault update failed (HTTP ${STATUS})" >&2

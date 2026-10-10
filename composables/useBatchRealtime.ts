@@ -1,6 +1,7 @@
 // Live progress for one batch via Supabase Realtime *broadcast*: DB
 // triggers (broadcast_url_change / broadcast_batch_change in schema.sql)
-// push client-facing fields to the public channel `batch:<id>`. The tables
+// push client-facing fields to the PRIVATE channel `batch:<id>` (RLS on
+// realtime.messages: anon may receive batch:* but never send). The tables
 // themselves are not readable with the anon key. We subscribe *before*
 // loading the /api/status snapshot so fast batches (cache hits, 1-domain
 // checks) can't finish in the gap; rows already received live win over the
@@ -62,7 +63,7 @@ export function useBatchRealtime(batchId: string) {
       // Don't block first paint forever if websockets are blocked.
       const timer = setTimeout(resolve, SUBSCRIBE_TIMEOUT_MS);
       channel = supabase
-        .channel(`batch:${batchId}`, { config: { private: false } })
+        .channel(`batch:${batchId}`, { config: { private: true } })
         .on("broadcast", { event: "url" }, ({ payload }) => {
           lastBroadcastAt = Date.now();
           upsertUrl(payload as UrlRow);

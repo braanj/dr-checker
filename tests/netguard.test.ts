@@ -34,3 +34,26 @@ describe("isBlockedAddress", () => {
       expect(isBlockedAddress(ip), ip).toBe(true);
   });
 });
+
+describe("isBlockedAddress — extra ranges from the review", () => {
+  it("blocks IETF/benchmark/documentation IPv4 ranges", () => {
+    for (const ip of ["192.0.0.1", "198.18.0.1", "198.19.255.255", "192.0.2.1", "198.51.100.1", "203.0.113.1"])
+      expect(isBlockedAddress(ip), ip).toBe(true);
+  });
+
+  it("blocks deprecated site-local and local-use NAT64 IPv6", () => {
+    for (const ip of ["fec0::1", "feff::1", "64:ff9b:1::1"]) expect(isBlockedAddress(ip), ip).toBe(true);
+  });
+
+  it("blocks 6to4 and Teredo addresses that embed a private IPv4", () => {
+    expect(isBlockedAddress("2002:7f00:0001::1"), "6to4 127.0.0.1").toBe(true);
+    expect(isBlockedAddress("2002:0a00:0001::1"), "6to4 10.0.0.1").toBe(true);
+    // Teredo: client IPv4 is the last 32 bits, XOR 0xffff
+    expect(isBlockedAddress("2001:0:4136:e378:8000:63bf:80ff:fffe"), "teredo → 127.0.0.1").toBe(true);
+  });
+
+  it("still allows public addresses next to the new ranges", () => {
+    for (const ip of ["192.0.1.1", "198.17.255.255", "198.20.0.1", "2002:0808:0808::1", "2001:4860:4860::8888"])
+      expect(isBlockedAddress(ip), ip).toBe(false);
+  });
+});
