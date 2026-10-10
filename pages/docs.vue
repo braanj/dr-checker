@@ -124,6 +124,7 @@ https://another-site.org,competitor</pre>
           <li><span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-accent-light text-accent">live</span> — fetched from Ahrefs just now</li>
           <li><span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-black/5 text-[#6e6e73]">cached</span> — from the directory, checked in the last 30 days</li>
           <li><span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-amber-100 text-amber-800">stale</span> — Ahrefs was unavailable after 3 tries, so this is the last known DR</li>
+          <li><span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-amber-100 text-amber-800">retrying</span> — the last try failed temporarily (e.g. Ahrefs rate limit); it is retried automatically, up to 3 attempts — hover it to see the error</li>
         </ul>
         <p class="mt-3">
           An <strong>error</strong> saying "No DR data from Ahrefs" means Ahrefs has no rating for that

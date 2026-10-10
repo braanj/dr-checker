@@ -17,6 +17,8 @@ export interface UrlRow {
   error_message?: string | null;
   source: "live" | "cache" | "stale" | "no_data" | null;
   checked_at: string | null;
+  attempts: number;
+  available_at: string;
 }
 
 export interface BatchRow {
@@ -25,6 +27,7 @@ export interface BatchRow {
   total_urls: number;
   processed_urls: number;
   status: "pending" | "processing" | "completed" | "failed";
+  created_at: string;
 }
 
 type BatchProgress = Omit<BatchRow, "filename">;
