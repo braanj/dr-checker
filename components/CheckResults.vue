@@ -11,6 +11,9 @@
           <span>{{ statusLabel }}</span>
           <span>{{ batch.processed_urls }} / {{ batch.total_urls }}</span>
         </div>
+        <p v-if="batch.created_at" class="-mt-1 mb-2 text-xs text-[#86868b]">
+          Started {{ new Date(batch.created_at).toLocaleString() }}
+        </p>
         <div class="h-1.5 w-full overflow-hidden rounded-full bg-black/5">
           <div class="h-full rounded-full transition-all duration-300"
             :class="batch.status === 'failed' ? 'bg-red-500' : 'bg-accent'" :style="{ width: progressPct + '%' }" />
@@ -53,7 +56,11 @@
                   </div>
                 </td>
                 <td class="py-2.5 px-4">
-                  <span :class="statusBadgeClass(row.status)">{{ row.status }} <small v-if="row.status === 'error'">
+                  <span v-if="retryInfo(row)" class="inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800"
+                    :title="row.error_message ?? undefined">
+                    retrying <small>· attempt {{ retryInfo(row)!.attempt }} of {{ retryInfo(row)!.of }}</small>
+                  </span>
+                  <span v-else :class="statusBadgeClass(row.status)">{{ row.status }} <small v-if="row.status === 'error'">
                       ({{ row.error_message }})
                     </small>
                   </span>

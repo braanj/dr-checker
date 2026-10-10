@@ -237,7 +237,9 @@ begin
       'status', new.status,
       'error_message', new.error_message,
       'source', new.source,
-      'checked_at', new.checked_at
+      'checked_at', new.checked_at,
+      'attempts', new.attempts,
+      'available_at', new.available_at
     ),
     'url',
     'batch:' || new.batch_id::text,

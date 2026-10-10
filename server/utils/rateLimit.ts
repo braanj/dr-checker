@@ -24,6 +24,8 @@ export async function assertRateLimit(event: H3Event) {
     throw createError({ statusCode: 500, statusMessage: `Rate limit check failed: ${error.message}` });
   }
   if (data !== true) {
+    // The window is one minute, so 60 s is always enough.
+    setResponseHeader(event, "Retry-After", 60);
     throw createError({ statusCode: 429, statusMessage: "Too many checks — try again in a minute" });
   }
 }
