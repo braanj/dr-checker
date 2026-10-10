@@ -8,10 +8,13 @@
           class="h-10 w-10 shrink-0 rounded-lg" />
         <div class="min-w-0">
           <h1 class="break-all text-3xl font-semibold tracking-tight text-[#1d1d1f]">{{ view.domain }}</h1>
-          <p class="text-sm text-[#6e6e73]">checked {{ checkedAgo(view.checked_at) }}</p>
+          <p class="text-sm text-[#6e6e73]">
+            checked
+            <ClientOnly>{{ checkedAgo(view.checked_at) }}<template #fallback>on {{ isoDate(view.checked_at) }}</template></ClientOnly>
+          </p>
         </div>
         <div class="ml-auto text-right">
-          <div class="text-5xl font-semibold tracking-tight text-[#1d1d1f]">{{ view.dr }}</div>
+          <div class="text-5xl font-semibold tracking-tight text-[#1d1d1f]">{{ formatDr(view.dr) }}</div>
           <div class="text-xs text-[#86868b]">Domain Rating</div>
         </div>
       </div>
@@ -39,22 +42,26 @@
           </thead>
           <tbody>
             <tr v-for="h in view.history" :key="h.checked_at" class="border-t border-black/5">
-              <td class="py-1.5">{{ new Date(h.checked_at).toLocaleDateString() }}</td>
-              <td class="py-1.5 font-medium">{{ h.dr }}</td>
+              <td class="py-1.5">{{ isoDate(h.checked_at) }}</td>
+              <td class="py-1.5 font-medium">{{ formatDr(h.dr) }}</td>
             </tr>
           </tbody>
         </table>
       </section>
     </template>
 
-    <div v-else class="mt-6">
+    <div v-else-if="param" class="mt-6">
       <h1 class="break-all text-3xl font-semibold tracking-tight text-[#1d1d1f]">
         We haven't checked {{ domainName }} yet
       </h1>
       <p class="mt-2 text-[#6e6e73]">Check it now. The result is added to the public directory.</p>
     </div>
+    <div v-else class="mt-6">
+      <h1 class="break-all text-3xl font-semibold tracking-tight text-[#1d1d1f]">That isn't a valid domain</h1>
+      <p class="mt-2 text-[#6e6e73]">Domain pages look like <code>/domain/example.com</code>.</p>
+    </div>
 
-    <button type="button" :disabled="checking || !param"
+    <button v-if="param" type="button" :disabled="checking || !param"
       class="mt-8 rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-black/20"
       @click="recheck">
       {{ checking ? "Checking…" : view ? "Re-check" : "Check its DR now" }}
@@ -74,16 +81,20 @@ const config = useRuntimeConfig();
 
 const raw = String(route.params.domain ?? "");
 const param = resolveDomainParam(raw);
-if (param && !param.canonical) {
-  await navigateTo(domainPath(param.domain), { redirectCode: 301 });
+const redirecting = !!param && !param.canonical;
+if (redirecting) {
+  // stops rendering; the rest of setup must not run for the old URL
+  await navigateTo(domainPath(param!.domain), { redirectCode: 301 });
 }
 const domainName = param?.domain ?? raw;
 
-const { data: view, error: fetchError } = param
+const { data: view, error: fetchError } = param && !redirecting
   ? await useFetch<DomainView>(`/api/domain/${encodeURIComponent(param.domain)}`, { key: `domain-${param.domain}` })
   : { data: ref<DomainView | null>(null), error: ref(null) };
 
-const pageState = domainPageState(view.value, fetchError.value);
+// while redirecting, nothing below may set a status or head tags (a 404
+// here would override the 301)
+const pageState = redirecting ? "redirect" : domainPageState(view.value, fetchError.value);
 if (pageState === "unavailable") {
   throw createError({ statusCode: 503, statusMessage: "Domain data is temporarily unavailable", fatal: true });
 }
@@ -102,6 +113,8 @@ if (pageState === "unknown") {
       { name: "description", content: seo.description },
       { property: "og:title", content: seo.title },
       { property: "og:description", content: seo.description },
+      { property: "og:url", content: seo.canonical },
+      { property: "og:type", content: "website" },
     ],
     link: [{ rel: "canonical", href: seo.canonical }],
   });

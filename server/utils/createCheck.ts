@@ -1,7 +1,8 @@
 // The DB writes behind POST /api/check: read the `domains` cache for the
 // submitted domains, insert the batch (pre-counting rows the cache already
 // answers, since bump_batch_progress only fires on UPDATE), then insert the
-// url rows. Pending rows trigger the process-queue webhook on insert.
+// url rows. Inserting pending rows starts the worker via the statement
+// trigger trg_urls_kick_worker (ADR 0002).
 
 import { supabaseAdmin } from "./supabaseAdmin";
 import { initialBatchStatus, planUrlRows, resultsDisplay, type CheckRow, type CheckSource } from "./checkInput";

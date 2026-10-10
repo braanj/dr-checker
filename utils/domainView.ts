@@ -26,6 +26,16 @@ export function domainPageState(
   return "unavailable";
 }
 
+// One DR display rule for title, description and body.
+export function formatDr(dr: number): string {
+  return String(Math.round(dr));
+}
+
+// SITE_URL may be configured with a trailing slash; never emit `//domain/…`.
+export function siteBase(siteUrl: string): string {
+  return siteUrl.replace(/\/+$/, "");
+}
+
 const DESCRIPTION_MAX = 300;
 
 function cap(text: string, max: number): string {
@@ -33,13 +43,13 @@ function cap(text: string, max: number): string {
 }
 
 export function domainSeo(view: DomainView, siteUrl: string) {
-  const dr = Math.round(view.dr);
+  const dr = formatDr(view.dr);
   const base = `${view.domain} has an Ahrefs Domain Rating of ${dr} (checked ${view.checked_at.slice(0, 10)}).`;
   const description = view.meta?.description ? cap(`${base} ${view.meta.description}`, DESCRIPTION_MAX) : base;
   return {
     title: `${view.domain} Domain Rating (DR ${dr}) | DR Checker`,
     description,
-    canonical: `${siteUrl}/domain/${view.domain}`,
+    canonical: `${siteBase(siteUrl)}/domain/${view.domain}`,
   };
 }
 

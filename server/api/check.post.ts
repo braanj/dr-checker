@@ -2,7 +2,7 @@
 // for typed lookups (max 100) or multipart `file` for CSV uploads (max
 // 1,000). Order matters: validate first (so typos don't burn rate-limit
 // slots), then rate limit, then write. Processing is picked up by the
-// process-queue edge function (webhook + cron), not here.
+// process-queue edge function (statement trigger + cron, ADR 0002), not here.
 
 import type { H3Event } from "h3";
 import {
