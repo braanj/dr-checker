@@ -58,6 +58,13 @@ Browser <--Realtime broadcast `batch:<id>`-- triggers (realtime.send)
 
 **Batch progress rollup:** `bump_batch_progress()` (a Postgres trigger on `urls` UPDATE, in `schema.sql`) recomputes `batches.processed_urls`/`status` whenever a url row transitions to `done`/`error`. Rows inserted already resolved (cache hits) don't fire it, so `/api/check` seeds `processed_urls` and marks the batch `completed` when nothing is queued. Otherwise, don't increment progress counters from Nitro or the edge function.
 
+**Health check:** batch counters should always match their url rows. This read-only query lists any batch whose `processed_urls` drifted; it should return no rows. `supabase/migrations/20261010000000_repair_batch_progress.sql` repaired the batches that drifted before the row-lock fix.
+```sql
+select b.id, b.processed_urls, count(*) filter (where u.status in ('done','error')) as actual
+from public.batches b join public.urls u on u.batch_id = b.id
+group by b.id having b.processed_urls <> count(*) filter (where u.status in ('done','error'));
+```
+
 **Results display:** typed checks with ≤ 10 valid rows render inline on the home page at `/?check=<id>` (via `components/CheckResults.vue`). Typed checks of 11–100 rows and every CSV redirect to `/results/<id>`.
 
 ### Ahrefs integration and cache
