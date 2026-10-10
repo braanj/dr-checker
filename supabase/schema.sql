@@ -89,7 +89,8 @@ create trigger trg_urls_updated_at
   before update on public.urls
   for each row execute function public.set_updated_at();
 
--- Roll batch.processed_urls / status up whenever a url row finishes.
+-- Roll batch.processed_urls / status up whenever a url row finishes
+-- (processing → completed, or failed when every row is an error).
 -- Rows inserted already resolved (cache hits) are pre-counted by
 -- /api/check, since this only fires on UPDATE.
 create or replace function public.bump_batch_progress()
@@ -97,6 +98,7 @@ returns trigger language plpgsql as $$
 declare
   v_total     integer;
   v_processed integer;
+  v_errors    integer;
 begin
   if (tg_op = 'UPDATE' and old.status <> new.status and new.status in ('done', 'error')) then
     -- Lock the batch row first: concurrent url updates of the same batch
@@ -106,13 +108,20 @@ begin
     -- batch stuck at "processing" forever.
     select total_urls into v_total from public.batches where id = new.batch_id for update;
 
-    select count(*) into v_processed
+    select count(*) filter (where status in ('done', 'error')),
+           count(*) filter (where status = 'error')
+    into v_processed, v_errors
     from public.urls
-    where batch_id = new.batch_id and status in ('done', 'error');
+    where batch_id = new.batch_id;
 
+    -- finished: `failed` when no row got a DR, otherwise `completed`
     update public.batches
     set processed_urls = v_processed,
-        status = case when v_processed >= v_total then 'completed' else 'processing' end
+        status = case
+          when v_processed < v_total then 'processing'
+          when v_errors >= v_total then 'failed'
+          else 'completed'
+        end
     where id = new.batch_id;
   end if;
   return new;
@@ -138,20 +147,30 @@ language plpgsql
 as $$
 begin
   return query
-  update public.urls
-  set status = 'processing',
-      claimed_at = now(),
-      attempts = urls.attempts + 1
-  where urls.id in (
-    select u.id
-    from public.urls u
-    where (u.status = 'pending' and u.available_at <= now())
-       or (u.status = 'processing' and u.claimed_at < now() - interval '2 minutes')
-    order by u.available_at
-    limit p_limit
-    for update skip locked
+  with claimed as (
+    update public.urls
+    set status = 'processing',
+        claimed_at = now(),
+        attempts = urls.attempts + 1
+    where urls.id in (
+      select u.id
+      from public.urls u
+      where (u.status = 'pending' and u.available_at <= now())
+         or (u.status = 'processing' and u.claimed_at < now() - interval '2 minutes')
+      order by u.available_at
+      limit p_limit
+      for update skip locked
+    )
+    returning urls.id, urls.domain, urls.attempts, urls.batch_id
+  ),
+  -- a queued batch becomes `processing` when its first row is claimed
+  started as (
+    update public.batches b
+    set status = 'processing'
+    where b.status = 'pending'
+      and b.id in (select c.batch_id from claimed c)
   )
-  returning urls.id, urls.domain, urls.attempts;
+  select c.id, c.domain, c.attempts from claimed c;
 end;
 $$;
 

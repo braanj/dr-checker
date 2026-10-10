@@ -19,6 +19,8 @@ npm run gen:types # regenerate supabase/functions/_shared/database.types.ts from
 
 **After any migration:** run `npm run gen:types` and commit the result. `supabaseAdmin()` and the edge function's client are `createClient<Database>`, so a schema change that the code doesn't follow fails `npm run typecheck` (or `deno check`). Columns that are `text` + CHECK (`status`, `source`) are generated as `string`; narrowing them to unions is an explicit cast at the read boundary.
 
+**SQL scenario tests** live in `supabase/tests/*.sql`: each is one `do` block that always ends in an exception, so everything it does rolls back. Run it in the SQL editor (or the Management API); success is the error text `SCENARIO OK`, a failure is `SCENARIO FAIL: …`.
+
 There's no lint script (`eslint` is a devDependency but has no script or config yet). `deno check supabase/functions/process-queue/index.ts` type-checks the edge function.
 
 Requires **Node ≥ 22** (`.nvmrc` pins 24; run `nvm use`): `@supabase/supabase-js` needs the native `WebSocket` global at `createClient()` time, even on the server, and Node 20 fails every Supabase-backed route with "Node.js 20 detected without native WebSocket support".
@@ -59,7 +61,7 @@ Browser <--Realtime broadcast `batch:<id>`-- triggers (realtime.send)
 
 **Client sync:** the client never polls by hand. AFTER UPDATE triggers `broadcast_url_change`/`broadcast_batch_change` call `realtime.send(..., 'batch:' || id, private => false)` with client-facing fields only. `composables/useBatchRealtime.ts` subscribes to that public channel *before* fetching the `/api/status/[batchId]` snapshot (rows received live win over the snapshot), so fast checks can't finish in the gap. `batches`/`urls` are not readable with the anon key; knowing the batch UUID is the only way to listen.
 
-**Batch progress rollup:** `bump_batch_progress()` (a Postgres trigger on `urls` UPDATE, in `schema.sql`) recomputes `batches.processed_urls`/`status` whenever a url row transitions to `done`/`error`. Rows inserted already resolved (cache hits) don't fire it, so `/api/check` seeds `processed_urls` and marks the batch `completed` when nothing is queued. Otherwise, don't increment progress counters from Nitro or the edge function.
+**Batch progress rollup:** `bump_batch_progress()` (a Postgres trigger on `urls` UPDATE, in `schema.sql`) recomputes `batches.processed_urls`/`status` whenever a url row transitions to `done`/`error`: `processing` until every row is finished, then `failed` if every row is `error`, otherwise `completed`. A batch with queued rows starts as `pending`; `claim_pending_urls()` flips it to `processing` when its first row is claimed (`initialBatchStatus()` in `server/utils/checkInput.ts` picks the insert-time status). Rows inserted already resolved (cache hits) don't fire it, so `/api/check` seeds `processed_urls` and marks a fully cache-answered batch `completed` (or `failed`) at insert time. Otherwise, don't increment progress counters from Nitro or the edge function.
 
 **Health check:** batch counters should always match their url rows. This read-only query lists any batch whose `processed_urls` drifted; it should return no rows. `supabase/migrations/20261010000000_repair_batch_progress.sql` repaired the batches that drifted before the row-lock fix.
 ```sql

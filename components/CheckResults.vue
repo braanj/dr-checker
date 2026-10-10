@@ -12,8 +12,12 @@
           <span>{{ batch.processed_urls }} / {{ batch.total_urls }}</span>
         </div>
         <div class="h-1.5 w-full overflow-hidden rounded-full bg-black/5">
-          <div class="h-full rounded-full bg-accent transition-all duration-300" :style="{ width: progressPct + '%' }" />
+          <div class="h-full rounded-full transition-all duration-300"
+            :class="batch.status === 'failed' ? 'bg-red-500' : 'bg-accent'" :style="{ width: progressPct + '%' }" />
         </div>
+        <p v-if="batch.status === 'failed'" class="mt-3 text-sm text-red-600">
+          None of these domains could be checked — see the errors below.
+        </p>
       </div>
 
       <button v-if="batch.processed_urls"
