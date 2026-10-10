@@ -14,6 +14,18 @@ export interface DomainView {
   meta: DomainMetaView | null;
 }
 
+// "unknown" (404 + noindex) only for a real 404 or an invalid domain; any
+// other failure is "unavailable" (503, no noindex) so a transient DB error
+// never tells search engines to drop an indexed page.
+export function domainPageState(
+  view: DomainView | null | undefined,
+  error: { statusCode?: number } | null | undefined,
+): "found" | "unknown" | "unavailable" {
+  if (view) return "found";
+  if (!error || error.statusCode === 404) return "unknown";
+  return "unavailable";
+}
+
 const DESCRIPTION_MAX = 300;
 
 function cap(text: string, max: number): string {

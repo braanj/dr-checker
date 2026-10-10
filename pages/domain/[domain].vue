@@ -79,17 +79,21 @@ if (param && !param.canonical) {
 }
 const domainName = param?.domain ?? raw;
 
-const { data: view } = param
+const { data: view, error: fetchError } = param
   ? await useFetch<DomainView>(`/api/domain/${encodeURIComponent(param.domain)}`, { key: `domain-${param.domain}` })
-  : { data: ref<DomainView | null>(null) };
+  : { data: ref<DomainView | null>(null), error: ref(null) };
 
-if (!view.value) {
+const pageState = domainPageState(view.value, fetchError.value);
+if (pageState === "unavailable") {
+  throw createError({ statusCode: 503, statusMessage: "Domain data is temporarily unavailable", fatal: true });
+}
+if (pageState === "unknown") {
   if (import.meta.server) setResponseStatus(useRequestEvent()!, 404);
   useHead({
     title: `${domainName}: not checked yet | DR Checker`,
     meta: [{ name: "robots", content: "noindex" }],
   });
-} else {
+} else if (view.value) {
   useResponseHeader("Cache-Control").value = "public, s-maxage=600, stale-while-revalidate=3600";
   const seo = domainSeo(view.value, config.public.siteUrl as string);
   useHead({

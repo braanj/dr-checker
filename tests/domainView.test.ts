@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { domainSeo, sparklinePath, type DomainView } from "../utils/domainView";
+import { domainPageState, domainSeo, sparklinePath, type DomainView } from "../utils/domainView";
 import { checkedAgo } from "../utils/checkedAgo";
 
 const view: DomainView = {
@@ -48,5 +48,22 @@ describe("checkedAgo", () => {
     expect(checkedAgo("2026-10-10T08:00:00Z", now)).toBe("today");
     expect(checkedAgo("2026-10-09T08:00:00Z", now)).toBe("1 day ago");
     expect(checkedAgo("2026-09-30T12:00:00Z", now)).toBe("10 days ago");
+  });
+});
+
+describe("domainPageState", () => {
+  it("is found when the API returned a view", () => {
+    expect(domainPageState(view, null)).toBe("found");
+  });
+
+  it("is unknown only for a real 404, or when there is no valid domain at all", () => {
+    expect(domainPageState(null, { statusCode: 404 })).toBe("unknown");
+    expect(domainPageState(null, null)).toBe("unknown");
+  });
+
+  it("is unavailable for any other failure, so a DB blip never serves 404 + noindex", () => {
+    expect(domainPageState(null, { statusCode: 500 })).toBe("unavailable");
+    expect(domainPageState(null, { statusCode: 503 })).toBe("unavailable");
+    expect(domainPageState(null, {})).toBe("unavailable");
   });
 });

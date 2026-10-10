@@ -18,7 +18,10 @@ export default defineEventHandler(async (event): Promise<DomainView> => {
     .eq("domain", domain)
     .eq("status", "ok")
     .maybeSingle();
-  if (error) throw createError({ statusCode: 500, statusMessage: error.message });
+  if (error) {
+    console.error("domain api: query failed", domain, error.message);
+    throw createError({ statusCode: 500, statusMessage: "Domain lookup failed" });
+  }
   if (!row || row.dr === null) throw createError({ statusCode: 404, statusMessage: "Unknown domain" });
 
   const { data: history, error: historyError } = await admin
@@ -27,7 +30,10 @@ export default defineEventHandler(async (event): Promise<DomainView> => {
     .eq("domain", domain)
     .order("checked_at", { ascending: false })
     .limit(HISTORY_LIMIT);
-  if (historyError) throw createError({ statusCode: 500, statusMessage: historyError.message });
+  if (historyError) {
+    console.error("domain api: query failed", domain, historyError.message);
+    throw createError({ statusCode: 500, statusMessage: "Domain lookup failed" });
+  }
 
   return { domain: row.domain, dr: row.dr, checked_at: row.checked_at, history: history ?? [], meta: null };
 });
