@@ -9,6 +9,7 @@ import type { Database } from "../_shared/database.types.ts";
 import { checkWorkerSecret } from "../_shared/auth.ts";
 import { extractMeta, iconExtension } from "./parseHead.ts";
 import { FetchBlocked, fetchSite, META_LIMITS, safeFetch, type NetDeps } from "./safeFetch.ts";
+import { metaErrorFields, metaSuccessFields } from "./metaOutcome.ts";
 
 const supabase = createClient<Database>(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false },
@@ -62,25 +63,21 @@ async function processDomain(domain: string): Promise<"ok" | "error"> {
     }
     const meta = extractMeta(new TextDecoder().decode(page.body), page.url);
     const favicon_path = await storeFavicon(domain, meta.faviconCandidates, deadline);
-    await supabase
+    const { error: saveError } = await supabase
       .from("domain_meta")
-      .update({
-        title: meta.title,
-        description: meta.description,
-        favicon_path,
-        status: "ok",
-        error: null,
-        fetched_at: new Date().toISOString(),
-        attempts: 0,
-      })
+      .update(metaSuccessFields(meta, favicon_path, new Date().toISOString()))
       .eq("domain", domain);
+    // supabase-js returns (does not throw) errors; an unsaved success must
+    // become an error outcome, or the claim would be retried every 2 minutes
+    if (saveError) throw new Error(`save failed: ${saveError.message}`);
     return "ok";
   } catch (err) {
     const reason = err instanceof FetchBlocked ? `blocked: ${err.message}` : String((err as Error)?.message ?? err);
-    await supabase
+    const { error: saveError } = await supabase
       .from("domain_meta")
-      .update({ status: "error", error: reason.slice(0, 200), fetched_at: new Date().toISOString() })
+      .update(metaErrorFields(reason, new Date().toISOString()))
       .eq("domain", domain);
+    if (saveError) console.error("domain_meta error write failed", domain, saveError.message);
     return "error";
   }
 }

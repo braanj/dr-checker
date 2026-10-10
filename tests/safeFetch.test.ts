@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { FetchBlocked, fetchSite, META_LIMITS, safeFetch, type NetDeps } from "../supabase/functions/fetch-meta/safeFetch";
+import { FetchBlocked, fetchSite, headEndDetector, META_LIMITS, safeFetch, type NetDeps } from "../supabase/functions/fetch-meta/safeFetch";
 
 function deps(routes: Record<string, () => Response>, dns: Record<string, string[]> = {}) {
   const calls: string[] = [];
@@ -109,5 +109,44 @@ describe("fetchSite", () => {
     const { net, calls } = deps({}, { "a.test": ["192.168.1.1"] });
     await expect(fetchSite("a.test", net)).rejects.toBeInstanceOf(FetchBlocked);
     expect(calls).toEqual([]);
+  });
+});
+
+describe("safeFetch </head> detection", () => {
+  const chunked = (parts: string[]) => () =>
+    new Response(
+      new ReadableStream({
+        start(c) {
+          for (const p of parts) c.enqueue(new TextEncoder().encode(p));
+          c.close();
+        },
+      }),
+      { headers: { "content-type": "text/html" } },
+    );
+
+  it("finds </head> split across chunk boundaries", async () => {
+    const { net } = deps({ "https://a.test/": chunked(["<head><title>x</title></he", "ad><body>", "y".repeat(100_000)]) });
+    const res = await safeFetch("https://a.test/", net, HTML_OPTS);
+    expect(res.body.length).toBeLessThan(1000);
+  });
+
+});
+
+describe("headEndDetector", () => {
+  it("detects </head> (any case, optional spaces) split across pieces", () => {
+    const seen = headEndDetector();
+    expect(["<head><title>x</title></HE", "AD  ", ">"].map(seen)).toEqual([false, false, true]);
+  });
+
+  it("does not match a lone fragment", () => {
+    const seen = headEndDetector();
+    expect(["</he", "llo>"].map(seen)).toEqual([false, false]);
+  });
+
+  it("is linear: 300,000 one-character pieces in well under a second", () => {
+    const seen = headEndDetector();
+    const started = performance.now();
+    for (let i = 0; i < 300_000; i++) seen("x");
+    expect(performance.now() - started).toBeLessThan(500);
   });
 });

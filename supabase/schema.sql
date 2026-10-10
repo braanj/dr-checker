@@ -440,6 +440,20 @@ returns setof text
 language plpgsql
 as $$
 begin
+  -- give up on domains whose runs never finished 3 times in a row (crashes,
+  -- CPU kills): mark them `error`, so meta_due() waits the normal 7 days
+  -- instead of reclaiming them every 2 minutes forever
+  update public.domain_meta
+  set status = 'error',
+      error = 'gave up: 3 runs never finished',
+      fetched_at = now(),
+      claimed_at = null,
+      attempts = 0
+  where claimed_at is not null
+    and claimed_at > coalesce(fetched_at, '-infinity'::timestamptz)
+    and claimed_at < now() - interval '2 minutes'
+    and attempts >= 3;
+
   -- every `ok` domain gets a meta row so it can be locked and claimed
   insert into public.domain_meta (domain)
   select d.domain from public.domains d

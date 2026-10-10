@@ -62,3 +62,10 @@ describe("iconExtension", () => {
     expect(iconExtension("")).toBeNull();
   });
 });
+
+describe("extractMeta control characters", () => {
+  it("strips NUL and other control characters Postgres text would reject", () => {
+    const html = "<head><title>Bad\u0000Title\u0007!</title><meta name=description content=\"a\u0001b\"></head>";
+    expect(extractMeta(html, PAGE)).toMatchObject({ title: "BadTitle!", description: "ab" });
+  });
+});

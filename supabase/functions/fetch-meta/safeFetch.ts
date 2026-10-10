@@ -50,12 +50,24 @@ async function checkUrl(url: URL, deps: NetDeps): Promise<void> {
   if (blocked) throw new FetchBlocked(`blocked address ${blocked}`);
 }
 
+// Incremental `</head>` check that stays linear on any chunking: it only keeps
+// a short tail (long enough for `</head` + spaces + `>` split across pieces).
+export function headEndDetector(): (piece: string) => boolean {
+  let tail = "";
+  return (piece) => {
+    tail = tail.slice(-32) + piece;
+    if (/<\/head\s*>/i.test(tail)) return true;
+    if (tail.length > 64) tail = tail.slice(-32);
+    return false;
+  };
+}
+
 async function readCapped(res: Response, opts: SafeFetchOpts): Promise<Uint8Array> {
   if (!res.body) return new Uint8Array();
   const reader = res.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
-  let text = "";
+  const seenHeadEnd = headEndDetector();
   const decoder = new TextDecoder();
   try {
     while (true) {
@@ -70,8 +82,7 @@ async function readCapped(res: Response, opts: SafeFetchOpts): Promise<Uint8Arra
       chunks.push(value);
       total += value.length;
       if (opts.stopAtHeadEnd) {
-        text += decoder.decode(value, { stream: true });
-        if (/<\/head\s*>/i.test(text)) break;
+        if (seenHeadEnd(decoder.decode(value, { stream: true }))) break;
       }
     }
   } finally {

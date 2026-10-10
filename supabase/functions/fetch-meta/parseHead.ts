@@ -18,7 +18,11 @@ function decodeEntities(s: string): string {
 
 function clean(raw: string | undefined, max: number): string | null {
   if (raw === undefined) return null;
-  const text = decodeEntities(raw).replace(/\s+/g, " ").trim();
+  const text = decodeEntities(raw)
+    // control characters (incl. NUL, which Postgres text rejects); \t \n \r become spaces below
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
   return text ? text.slice(0, max) : null;
 }
 
