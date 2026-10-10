@@ -35,6 +35,9 @@ function attrs(tag: string): Record<string, string> {
   return out;
 }
 
+// quote-aware: a `>` inside a quoted attribute value doesn't end the tag
+const TAG = (name: string) => new RegExp(`<${name}\\b(?:[^>"']|"[^"]*"|'[^']*')*>`, "gi");
+
 function headOf(html: string): string {
   const end = html.search(/<\/head\s*>/i);
   return end === -1 ? html : html.slice(0, end);
@@ -42,7 +45,7 @@ function headOf(html: string): string {
 
 export function extractMeta(html: string, pageUrl: string) {
   const head = headOf(html);
-  const metas = [...head.matchAll(/<meta\b[^>]*>/gi)].map((m) => attrs(m[0]));
+  const metas = [...head.matchAll(TAG("meta"))].map((m) => attrs(m[0]));
   const metaValue = (key: "name" | "property", value: string) =>
     metas.find((a) => a[key]?.toLowerCase() === value)?.content;
 
@@ -54,7 +57,7 @@ export function extractMeta(html: string, pageUrl: string) {
     clean(metaValue("property", "og:description"), DESCRIPTION_MAX);
 
   const ranked: { href: string; rank: number; order: number }[] = [];
-  [...head.matchAll(/<link\b[^>]*>/gi)].forEach((m, order) => {
+  [...head.matchAll(TAG("link"))].forEach((m, order) => {
     const a = attrs(m[0]);
     const rel = (a.rel ?? "").toLowerCase().split(/\s+/);
     if (!a.href) return;
@@ -94,6 +97,10 @@ const ICON_TYPES: Record<string, string> = {
   "image/svg+xml": "svg",
 };
 
+export function normalizeMime(contentType: string): string {
+  return contentType.split(";")[0].trim().toLowerCase();
+}
+
 export function iconExtension(contentType: string): string | null {
-  return ICON_TYPES[contentType.split(";")[0].trim().toLowerCase()] ?? null;
+  return ICON_TYPES[normalizeMime(contentType)] ?? null;
 }

@@ -36,7 +36,7 @@ supabase functions deploy process-queue --no-verify-jwt
 Also required:
 - run `scripts/provision-worker-secret.sh <project-ref>` once (and to rotate): it sets the function secret `WORKER_SECRET` and the Vault entries `worker_secret`/`worker_url`/`meta_worker_url` that `kick_worker()` and `kick_meta_worker()` use (ADR 0002/0003);
 - the `supabase_vault` extension enabled (default on Supabase; `kick_worker()`/`kick_meta_worker()` read their secrets from it);
-- Realtime set to allow public channels.
+- Realtime private channels (an RLS policy on `realtime.messages` lets anon receive `batch:*` broadcasts; there is no insert policy, so nobody can send). "Private channels only" may be enabled in the dashboard.
 
 ## Architecture
 
@@ -60,7 +60,7 @@ Browser <--Realtime broadcast `batch:<id>`-- triggers (realtime.send)
 
 **Concurrency and recovery:** every check's URLs land in the same `urls` table and are processed by the same worker pool. `claim_pending_urls()` (in `schema.sql`) takes rows that are `pending` with `available_at <= now()`, plus rows stuck in `processing` for more than 2 minutes (`claimed_at`), so crashed invocations recover. It uses `FOR UPDATE SKIP LOCKED`, so concurrent invocations never double-process a row. Each claim increments `urls.attempts`.
 
-**Client sync:** the client never polls by hand. AFTER UPDATE triggers `broadcast_url_change`/`broadcast_batch_change` call `realtime.send(..., 'batch:' || id, private => false)` with client-facing fields only. `composables/useBatchRealtime.ts` subscribes to that public channel *before* fetching the `/api/status/[batchId]` snapshot (rows received live win over the snapshot), so fast checks can't finish in the gap. `batches`/`urls` are not readable with the anon key; knowing the batch UUID is the only way to listen.
+**Client sync:** AFTER UPDATE triggers `broadcast_url_change`/`broadcast_batch_change` call `realtime.send(..., 'batch:' || id, private => true)` with client-facing fields only. `composables/useBatchRealtime.ts` subscribes to that private channel (receive-only for anon via RLS on `realtime.messages`) *before* fetching the `/api/status/[batchId]` snapshot (rows received live win over the snapshot), so fast checks can't finish in the gap. If the channel fails or stays silent for 10 s while a batch is unfinished, it polls `/api/status` every 5 s (`utils/realtimePoll.ts`). `batches`/`urls` are not readable with the anon key; knowing the batch UUID is the only way to listen.
 
 **Batch progress rollup:** `bump_batch_progress()` (a Postgres trigger on `urls` UPDATE, in `schema.sql`) recomputes `batches.processed_urls`/`status` whenever a url row transitions to `done`/`error`: `processing` until every row is finished, then `failed` if every row is `error`, otherwise `completed`. A batch with queued rows starts as `pending`; `claim_pending_urls()` flips it to `processing` when its first row is claimed (`initialBatchStatus()` in `server/utils/checkInput.ts` picks the insert-time status). Rows inserted already resolved (cache hits) don't fire it, so `/api/check` seeds `processed_urls` and marks a fully cache-answered batch `completed` (or `failed`) at insert time. Otherwise, don't increment progress counters from Nitro or the edge function.
 

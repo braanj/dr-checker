@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { FetchBlocked, fetchSite, headEndDetector, META_LIMITS, safeFetch, type NetDeps } from "../supabase/functions/fetch-meta/safeFetch";
+import { combineLookups, FetchBlocked, fetchSite, headEndDetector, META_LIMITS, safeFetch, type NetDeps } from "../supabase/functions/fetch-meta/safeFetch";
 
 function deps(routes: Record<string, () => Response>, dns: Record<string, string[]> = {}) {
   const calls: string[] = [];
@@ -148,5 +148,41 @@ describe("headEndDetector", () => {
     const started = performance.now();
     for (let i = 0; i < 300_000; i++) seen("x");
     expect(performance.now() - started).toBeLessThan(500);
+  });
+});
+
+describe("DNS under the deadline and fail-closed lookups", () => {
+  it("passes the per-domain signal to DNS resolution, so a hanging resolver is cut off", async () => {
+    const net: NetDeps = {
+      resolve: (_host, signal) =>
+        new Promise((_, reject) => signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")))),
+      fetch: async () => new Response("never"),
+    };
+    const started = Date.now();
+    await expect(safeFetch("https://slow-dns.test/", net, { ...HTML_OPTS, signal: AbortSignal.timeout(50) })).rejects.toThrow();
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
+
+  it("combineLookups: NotFound on one family is fine, any other lookup error fails closed", () => {
+    const ok = (v: string[]) => ({ status: "fulfilled" as const, value: v });
+    const err = (name: string) => ({ status: "rejected" as const, reason: Object.assign(new Error(name), { name }) });
+    expect(combineLookups(ok(["93.184.216.34"]), err("NotFound"))).toEqual(["93.184.216.34"]);
+    expect(() => combineLookups(ok(["93.184.216.34"]), err("TimedOut"))).toThrow(/DNS lookup failed/);
+    expect(combineLookups(err("NotFound"), err("NotFound"))).toEqual([]);
+  });
+});
+
+describe("fetchSite does not fall back to http after a timeout", () => {
+  it("rethrows a timed-out https attempt instead of trying http", async () => {
+    const calls: string[] = [];
+    const net: NetDeps = {
+      resolve: async () => ["93.184.216.34"],
+      fetch: async (url) => {
+        calls.push(url);
+        throw new DOMException("The operation timed out.", "TimeoutError");
+      },
+    };
+    await expect(fetchSite("a.test", net)).rejects.toThrow(/timed out/);
+    expect(calls).toEqual(["https://a.test/"]);
   });
 });

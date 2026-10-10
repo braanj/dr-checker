@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { domainPageState, domainSeo, formatDr, siteBase, sparklinePath, type DomainView } from "../utils/domainView";
+import { domainPageState, domainSeo, formatDr, metaViewFrom, siteBase, sparklinePath, type DomainView } from "../utils/domainView";
 import { isoDate } from "../utils/checkedAgo";
 import { checkedAgo } from "../utils/checkedAgo";
 
@@ -86,5 +86,21 @@ describe("formatDr / siteBase / isoDate", () => {
   it("renders dates as a locale-independent UTC YYYY-MM-DD", () => {
     expect(isoDate("2026-10-01T23:30:00-02:00")).toBe("2026-10-02");
     expect(isoDate("2026-10-10T12:41:53.168+00:00")).toBe("2026-10-10");
+  });
+});
+
+describe("metaViewFrom", () => {
+  const SUPA = "https://p.supabase.co";
+  it("shows the last good metadata even when the latest refresh errored", () => {
+    expect(metaViewFrom({ status: "error", title: "T", description: "D", favicon_path: "x.com.png" }, SUPA)).toEqual({
+      title: "T",
+      description: "D",
+      favicon_url: "https://p.supabase.co/storage/v1/object/public/favicons/x.com.png",
+    });
+  });
+
+  it("is null when there is nothing to show", () => {
+    expect(metaViewFrom(null, SUPA)).toBeNull();
+    expect(metaViewFrom({ status: "error", title: null, description: null, favicon_path: null }, SUPA)).toBeNull();
   });
 });

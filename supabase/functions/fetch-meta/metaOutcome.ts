@@ -30,3 +30,9 @@ export function metaErrorFields(reason: string, nowIso: string) {
     attempts: 0,
   };
 }
+
+// The previously stored favicon object to delete after a successful refresh
+// that changed (or dropped) the path; otherwise null.
+export function staleFaviconPath(previous: string | null, next: string | null): string | null {
+  return previous && previous !== next ? previous : null;
+}

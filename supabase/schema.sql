@@ -253,7 +253,7 @@ begin
     ),
     'url',
     'batch:' || new.batch_id::text,
-    false
+    true  -- private: only receivers allowed by RLS on realtime.messages
   );
   return null;
 end;
@@ -275,11 +275,20 @@ begin
     ),
     'batch',
     'batch:' || new.id::text,
-    false
+    true  -- private: only receivers allowed by RLS on realtime.messages
   );
   return null;
 end;
 $$;
+
+-- Private broadcasts: anon may RECEIVE batch:* topics; with no insert policy
+-- nobody can SEND to them with the public key (no spoofed progress).
+drop policy if exists "anon receives batch broadcasts" on realtime.messages;
+create policy "anon receives batch broadcasts"
+  on realtime.messages
+  for select
+  to anon, authenticated
+  using (realtime.messages.extension = 'broadcast' and realtime.topic() like 'batch:%');
 
 drop trigger if exists trg_broadcast_url on public.urls;
 create trigger trg_broadcast_url

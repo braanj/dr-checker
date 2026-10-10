@@ -18,7 +18,7 @@ export const META_LIMITS = {
 const USER_AGENT = "DRCheckerBot/1.0 (+https://dr-bulkchecker.netlify.app)";
 
 export interface NetDeps {
-  resolve(host: string): Promise<string[]>;
+  resolve(host: string, signal?: AbortSignal): Promise<string[]>;
   fetch(url: string, init: RequestInit): Promise<Response>;
 }
 
@@ -39,12 +39,25 @@ export interface FetchedBody {
   body: Uint8Array;
 }
 
-async function checkUrl(url: URL, deps: NetDeps): Promise<void> {
+// A/AAAA results: "no records" (NotFound) on one family is normal; any other
+// lookup failure (SERVFAIL, timeout) fails closed rather than trusting the
+// other family alone.
+export function combineLookups(a: PromiseSettledResult<string[]>, aaaa: PromiseSettledResult<string[]>): string[] {
+  const out: string[] = [];
+  for (const r of [a, aaaa]) {
+    if (r.status === "fulfilled") out.push(...r.value);
+    else if ((r.reason as Error)?.name !== "NotFound") throw new Error(`DNS lookup failed: ${(r.reason as Error)?.message ?? r.reason}`);
+  }
+  return out;
+}
+
+async function checkUrl(url: URL, deps: NetDeps, signal?: AbortSignal): Promise<void> {
   if (url.protocol !== "http:" && url.protocol !== "https:") throw new FetchBlocked(`scheme ${url.protocol}`);
   if (url.port !== "" && url.port !== "80" && url.port !== "443") throw new FetchBlocked(`port ${url.port}`);
   if (url.username || url.password) throw new FetchBlocked("credentials in URL");
   const host = url.hostname.replace(/^\[|\]$/g, "");
-  const addresses = /^[\d.]+$/.test(host) || host.includes(":") ? [host] : await deps.resolve(host);
+  signal?.throwIfAborted();
+  const addresses = /^[\d.]+$/.test(host) || host.includes(":") ? [host] : await deps.resolve(host, signal);
   if (addresses.length === 0) throw new Error(`DNS: no address for ${host}`);
   const blocked = addresses.find(isBlockedAddress);
   if (blocked) throw new FetchBlocked(`blocked address ${blocked}`);
@@ -105,7 +118,7 @@ export async function safeFetch(start: string, deps: NetDeps, opts: SafeFetchOpt
     throw new FetchBlocked(`invalid URL ${start}`);
   }
   for (let hop = 0; ; hop++) {
-    await checkUrl(url, deps);
+    await checkUrl(url, deps, opts.signal);
     const timeout = AbortSignal.timeout(META_LIMITS.requestTimeoutMs);
     const res = await deps.fetch(url.href, {
       redirect: "manual",
@@ -139,7 +152,10 @@ export async function fetchSite(domain: string, deps: NetDeps, signal?: AbortSig
   try {
     return await safeFetch(`https://${domain}/`, deps, opts);
   } catch (err) {
-    if (err instanceof FetchBlocked || signal?.aborted) throw err;
+    // fall back to http only for connection/TLS/DNS failures, never after a
+    // timeout or abort (a tarpit must not be hit twice)
+    const name = (err as Error)?.name;
+    if (err instanceof FetchBlocked || signal?.aborted || name === "TimeoutError" || name === "AbortError") throw err;
     return await safeFetch(`http://${domain}/`, deps, opts);
   }
 }

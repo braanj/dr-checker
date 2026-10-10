@@ -8,7 +8,7 @@ function parseIPv4(s: string): number[] | null {
   return n.every((x) => x >= 0 && x <= 255) ? n : null;
 }
 
-function blockedV4([a, b]: number[]): boolean {
+function blockedV4([a, b, c]: number[]): boolean {
   return (
     a === 0 ||
     a === 10 ||
@@ -17,6 +17,10 @@ function blockedV4([a, b]: number[]): boolean {
     (a === 169 && b === 254) ||
     (a === 172 && b >= 16 && b <= 31) ||
     (a === 192 && b === 168) ||
+    (a === 192 && b === 0 && (c === 0 || c === 2)) || // IETF protocol assignments, TEST-NET-1
+    (a === 198 && (b === 18 || b === 19)) || // benchmarking 198.18/15
+    (a === 198 && b === 51 && c === 100) || // TEST-NET-2
+    (a === 203 && b === 0 && c === 113) || // TEST-NET-3
     a >= 224 // multicast 224/4, reserved 240/4, broadcast
   );
 }
@@ -53,7 +57,16 @@ function blockedV6(h: number[]): boolean {
   if (firstFiveZero && h[5] === 0xffff) return blockedV4(embeddedV4); // ::ffff:a.b.c.d
   if (firstFiveZero && h[5] === 0) return true; // ::1 and IPv4-compatible ::a.b.c.d (deprecated)
   if (h[0] === 0x64 && h[1] === 0xff9b && h.slice(2, 6).every((x) => x === 0)) return blockedV4(embeddedV4); // NAT64
+  if (h[0] === 0x64 && h[1] === 0xff9b && h[2] === 1) return true; // local-use NAT64 64:ff9b:1::/48
+  if (h[0] === 0x2002) return blockedV4([h[1] >> 8, h[1] & 0xff, h[2] >> 8, h[2] & 0xff]); // 6to4
+  if (h[0] === 0x2001 && h[1] === 0) {
+    // Teredo: the client IPv4 is the last 32 bits, XOR 0xffffffff
+    const x6 = h[6] ^ 0xffff;
+    const x7 = h[7] ^ 0xffff;
+    return blockedV4([x6 >> 8, x6 & 0xff, x7 >> 8, x7 & 0xff]);
+  }
   if ((h[0] & 0xfe00) === 0xfc00) return true; // fc00::/7
+  if ((h[0] & 0xffc0) === 0xfec0) return true; // deprecated site-local fec0::/10
   if ((h[0] & 0xffc0) === 0xfe80) return true; // fe80::/10
   if ((h[0] & 0xff00) === 0xff00) return true; // ff00::/8
   return false;

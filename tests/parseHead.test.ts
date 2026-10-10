@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractMeta, iconExtension } from "../supabase/functions/fetch-meta/parseHead";
+import { extractMeta, iconExtension, normalizeMime } from "../supabase/functions/fetch-meta/parseHead";
 
 const PAGE = "https://www.example.com/home/";
 
@@ -67,5 +67,17 @@ describe("extractMeta control characters", () => {
   it("strips NUL and other control characters Postgres text would reject", () => {
     const html = "<head><title>Bad\u0000Title\u0007!</title><meta name=description content=\"a\u0001b\"></head>";
     expect(extractMeta(html, PAGE)).toMatchObject({ title: "BadTitle!", description: "ab" });
+  });
+});
+
+describe("quote-aware tags and MIME normalisation", () => {
+  it("keeps attribute values that contain '>'", () => {
+    const html = `<head><meta name="description" content="A -> B > C"><title>t</title></head>`;
+    expect(extractMeta(html, PAGE).description).toBe("A -> B > C");
+  });
+
+  it("normalises favicon MIME types to lowercase without parameters", () => {
+    expect(normalizeMime("Image/PNG; charset=binary")).toBe("image/png");
+    expect(normalizeMime("")).toBe("");
   });
 });

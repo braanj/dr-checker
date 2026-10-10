@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { metaErrorFields, metaSuccessFields } from "../supabase/functions/fetch-meta/metaOutcome";
+import { metaErrorFields, metaSuccessFields, staleFaviconPath } from "../supabase/functions/fetch-meta/metaOutcome";
 
 const NOW = "2026-10-10T12:00:00.000Z";
 
@@ -29,5 +29,14 @@ describe("meta outcome fields", () => {
 
   it("caps the stored error text at 200 characters", () => {
     expect(metaErrorFields("x".repeat(500), NOW).error).toHaveLength(200);
+  });
+});
+
+describe("staleFaviconPath", () => {
+  it("returns the previous object to delete only when the path changed", () => {
+    expect(staleFaviconPath("x.com.png", "x.com.ico")).toBe("x.com.png");
+    expect(staleFaviconPath("x.com.png", null)).toBe("x.com.png");
+    expect(staleFaviconPath("x.com.png", "x.com.png")).toBeNull();
+    expect(staleFaviconPath(null, "x.com.ico")).toBeNull();
   });
 });

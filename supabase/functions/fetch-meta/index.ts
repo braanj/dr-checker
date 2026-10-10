@@ -7,9 +7,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import type { Database } from "../_shared/database.types.ts";
 import { checkWorkerSecret } from "../_shared/auth.ts";
-import { extractMeta, iconExtension } from "./parseHead.ts";
-import { FetchBlocked, fetchSite, META_LIMITS, safeFetch, type NetDeps } from "./safeFetch.ts";
-import { metaErrorFields, metaSuccessFields } from "./metaOutcome.ts";
+import { extractMeta, iconExtension, normalizeMime } from "./parseHead.ts";
+import { combineLookups, FetchBlocked, fetchSite, META_LIMITS, safeFetch, type NetDeps } from "./safeFetch.ts";
+import { metaErrorFields, metaSuccessFields, staleFaviconPath } from "./metaOutcome.ts";
 
 const supabase = createClient<Database>(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false },
@@ -19,18 +19,20 @@ const WORKER_SECRET = Deno.env.get("WORKER_SECRET");
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 
 const net: NetDeps = {
-  resolve: async (host) => {
-    const [a, aaaa] = await Promise.all([
-      Deno.resolveDns(host, "A").catch(() => [] as string[]),
-      Deno.resolveDns(host, "AAAA").catch(() => [] as string[]),
+  // under the per-domain deadline; a non-NotFound failure on either family fails closed
+  resolve: async (host, signal) => {
+    const [a, aaaa] = await Promise.allSettled([
+      Deno.resolveDns(host, "A", { signal }),
+      Deno.resolveDns(host, "AAAA", { signal }),
     ]);
-    return [...a, ...aaaa];
+    return combineLookups(a, aaaa);
   },
   fetch: (url, init) => fetch(url, init),
 };
 
 async function storeFavicon(domain: string, candidates: string[], signal: AbortSignal): Promise<string | null> {
   for (const href of candidates.slice(0, META_LIMITS.iconCandidates)) {
+    if (signal.aborted) break;
     try {
       const icon = await safeFetch(href, net, {
         accept: "image/*",
@@ -43,7 +45,7 @@ async function storeFavicon(domain: string, candidates: string[], signal: AbortS
       const path = `${domain}.${ext}`;
       const { error } = await supabase.storage
         .from("favicons")
-        .upload(path, icon.body, { upsert: true, contentType: icon.contentType.split(";")[0].trim() });
+        .upload(path, icon.body, { upsert: true, contentType: normalizeMime(icon.contentType) });
       if (!error) return path;
       console.error("favicon upload failed", domain, error.message);
     } catch {
@@ -62,6 +64,7 @@ async function processDomain(domain: string): Promise<"ok" | "error"> {
       throw new Error(`not HTML (${page.contentType || "no content-type"})`);
     }
     const meta = extractMeta(new TextDecoder().decode(page.body), page.url);
+    const { data: previous } = await supabase.from("domain_meta").select("favicon_path").eq("domain", domain).maybeSingle();
     const favicon_path = await storeFavicon(domain, meta.faviconCandidates, deadline);
     const { error: saveError } = await supabase
       .from("domain_meta")
@@ -70,6 +73,12 @@ async function processDomain(domain: string): Promise<"ok" | "error"> {
     // supabase-js returns (does not throw) errors; an unsaved success must
     // become an error outcome, or the claim would be retried every 2 minutes
     if (saveError) throw new Error(`save failed: ${saveError.message}`);
+    // the favicon changed extension (or vanished): drop the old object
+    const stale = staleFaviconPath(previous?.favicon_path ?? null, favicon_path);
+    if (stale) {
+      const { error: removeError } = await supabase.storage.from("favicons").remove([stale]);
+      if (removeError) console.error("stale favicon removal failed", domain, removeError.message);
+    }
     return "ok";
   } catch (err) {
     const reason = err instanceof FetchBlocked ? `blocked: ${err.message}` : String((err as Error)?.message ?? err);

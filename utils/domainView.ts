@@ -36,6 +36,22 @@ export function siteBase(siteUrl: string): string {
   return siteUrl.replace(/\/+$/, "");
 }
 
+// The last good metadata stays visible even when the latest refresh errored
+// (an error outcome never clears title/description/favicon_path).
+export function metaViewFrom(
+  row: { status: string | null; title: string | null; description: string | null; favicon_path: string | null } | null,
+  supabaseUrl: string,
+): DomainMetaView | null {
+  if (!row || (!row.title && !row.description && !row.favicon_path)) return null;
+  return {
+    title: row.title,
+    description: row.description,
+    favicon_url: row.favicon_path
+      ? `${supabaseUrl}/storage/v1/object/public/favicons/${encodeURIComponent(row.favicon_path)}`
+      : null,
+  };
+}
+
 const DESCRIPTION_MAX = 300;
 
 function cap(text: string, max: number): string {
