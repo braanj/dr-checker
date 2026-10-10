@@ -135,12 +135,6 @@ function sourceBadge(row: UrlRow) {
   }
 }
 
-function checkedAgo(iso: string) {
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (days <= 0) return "today";
-  return days === 1 ? "1 day ago" : `${days} days ago`;
-}
-
 function download() {
   window.location.href = `/api/download/${props.batchId}`;
 }
