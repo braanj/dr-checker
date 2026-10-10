@@ -39,6 +39,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe>
     public: {
       supabaseUrl: process.env.SUPABASE_URL,
       supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+      siteUrl: process.env.SITE_URL ?? "https://dr-bulkchecker.netlify.app",
     },
   },
 });

@@ -44,7 +44,9 @@
               <tr v-for="row in sortedUrls" :key="row.id"
                 class="border-b border-black/5 last:border-0 transition-colors hover:bg-black/[0.02]">
                 <td class="py-2.5 px-4 truncate max-w-[220px]" :title="row.original_url">{{ row.original_url }}</td>
-                <td class="py-2.5 px-4 text-[#6e6e73]">{{ row.domain }}</td>
+                <td class="py-2.5 px-4 text-[#6e6e73]">
+                  <NuxtLink :to="domainPath(row.domain)" class="transition-colors hover:text-accent">{{ row.domain }}</NuxtLink>
+                </td>
                 <td class="py-2.5 px-4">
                   <span class="font-medium">{{ row.dr ?? "—" }}</span>
                   <span v-if="sourceBadge(row)" :class="sourceBadge(row)!.class" :title="sourceBadge(row)!.title"
@@ -133,12 +135,6 @@ function sourceBadge(row: UrlRow) {
     default:
       return null;
   }
-}
-
-function checkedAgo(iso: string) {
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (days <= 0) return "today";
-  return days === 1 ? "1 day ago" : `${days} days ago`;
 }
 
 function download() {

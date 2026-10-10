@@ -62,6 +62,27 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_history: {
+        Row: {
+          checked_at: string
+          domain: string
+          dr: number
+          id: number
+        }
+        Insert: {
+          checked_at: string
+          domain: string
+          dr: number
+          id?: never
+        }
+        Update: {
+          checked_at?: string
+          domain?: string
+          dr?: number
+          id?: never
+        }
+        Relationships: []
+      }
       domains: {
         Row: {
           checked_at: string
