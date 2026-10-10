@@ -152,6 +152,7 @@ https://another-site.org,competitor</pre>
         </p>
         <p class="mt-3">
           Click a domain to open its page: current DR, DR history and a <strong>Re-check</strong> button.
+          Domain pages also show the site's favicon, title and description, refreshed monthly.
         </p>
       </section>
 

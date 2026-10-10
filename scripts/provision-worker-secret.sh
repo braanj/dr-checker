@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Provision or rotate the process-queue worker secret (ADR 0002).
 # Sets the edge-function secret WORKER_SECRET and the Vault entries
-# worker_secret + worker_url to matching values. Never prints the secret.
+# worker_secret + worker_url + meta_worker_url to matching values.
+# Never prints the secret.
 #
 # Usage: SUPABASE_ACCESS_TOKEN=... scripts/provision-worker-secret.sh <project-ref>
 # Rotation: rerun it. Calls made between the two updates may get a 401;
@@ -13,6 +14,7 @@ REF="${1:?usage: $0 <project-ref>}"
 
 SECRET="$(openssl rand -hex 32)"
 URL="https://${REF}.supabase.co/functions/v1/process-queue"
+META_URL="https://${REF}.supabase.co/functions/v1/fetch-meta"
 
 npx -y supabase@2.109.0 secrets set --project-ref "$REF" "WORKER_SECRET=${SECRET}" >/dev/null
 echo "function secret WORKER_SECRET set"
@@ -30,6 +32,11 @@ begin
   else
     perform vault.create_secret('${URL}', 'worker_url');
   end if;
+  if exists (select 1 from vault.secrets where name = 'meta_worker_url') then
+    perform vault.update_secret((select id from vault.secrets where name = 'meta_worker_url'), '${META_URL}');
+  else
+    perform vault.create_secret('${META_URL}', 'meta_worker_url');
+  end if;
 end
 \$\$;"
 
@@ -44,4 +51,4 @@ if [[ "$STATUS" != 2* ]]; then
   echo "vault update failed (HTTP ${STATUS})" >&2
   exit 1
 fi
-echo "vault entries worker_secret + worker_url set"
+echo "vault entries worker_secret + worker_url + meta_worker_url set"
