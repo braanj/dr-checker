@@ -133,7 +133,9 @@
                 </tr>
                 <tr v-for="d in domains" :key="d.domain"
                   class="border-b border-black/5 last:border-0 transition-colors hover:bg-black/[0.02]">
-                  <td class="py-2.5 px-4 break-all">{{ d.domain }}</td>
+                  <td class="py-2.5 px-4 break-all">
+                    <NuxtLink :to="domainPath(d.domain)" class="transition-colors hover:text-accent">{{ d.domain }}</NuxtLink>
+                  </td>
                   <td class="py-2.5 px-4 font-medium">{{ d.dr ?? "—" }}</td>
                   <td class="py-2.5 px-4 text-[#6e6e73]">{{ formatDate(d.checked_at) }}</td>
                 </tr>
