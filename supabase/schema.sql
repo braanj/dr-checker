@@ -334,7 +334,8 @@ begin
     url := v_url,
     headers := jsonb_build_object('Content-Type', 'application/json', 'x-worker-secret', v_secret),
     body := '{}'::jsonb,
-    timeout_milliseconds := 5000
+    -- the function answers only after its drain loop (≤ 150 s wall clock)
+    timeout_milliseconds := 150000
   );
 end;
 $$;

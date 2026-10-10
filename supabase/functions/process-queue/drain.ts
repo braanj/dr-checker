@@ -4,9 +4,15 @@
 // Ahrefs calls across the whole run. All I/O is injected so Vitest can drive
 // it with a fake clock.
 
-export const LEASE_TTL_SECONDS = 60;
-export const TIME_BUDGET_MS = 120_000; // edge wall-clock limit is 150 s; cron resumes
+// Limits are tied together (tests/workerLimits.test.ts): one iteration's worst
+// case (every row an Ahrefs call that times out) must fit inside the lease TTL,
+// and budget + one worst iteration inside the edge wall-clock limit.
+export const EDGE_WALL_CLOCK_MS = 150_000;
+export const CLAIM_SIZE = 5; // urls claimed per iteration
+export const AHREFS_TIMEOUT_MS = 8_000; // a hung call must not outlive the lease
 export const AHREFS_DELAY_MS = 300;
+export const LEASE_TTL_SECONDS = 60;
+export const TIME_BUDGET_MS = 90_000; // checked before each claim; cron resumes
 
 export type ClaimedRow = { id: string; domain: string; attempts: number };
 

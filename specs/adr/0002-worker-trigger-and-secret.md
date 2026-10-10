@@ -61,7 +61,7 @@ The function lives in `supabase/functions/process-queue/`.
 ```
 acquire lease (TTL 60 s) → not acquired? return 200 {"skipped":"busy"}
 loop:
-  stop if elapsed > 120 s   (edge wall-clock limit is 150 s; cron resumes)
+  stop if elapsed > 90 s    (edge wall-clock limit is 150 s; cron resumes)
   renew lease → lost? stop
   claim 5 rows → none? stop
   process the claimed rows (unchanged from ADR 0001: cache check,
@@ -69,6 +69,7 @@ loop:
 release lease → 200 {"processed": N, "iterations": K}
 ```
 - Spacing is enforced across iterations by tracking when the last Ahrefs call happened.
+- **Time limits are tied together** (`tests/workerLimits.test.ts`). Ahrefs calls time out after 8 s, so the worst iteration (5 calls that all time out) is about 42 s. That is shorter than the 60 s lease TTL, so a second loop can never start mid-iteration. A 90 s budget plus one worst iteration also stays under the 150 s edge wall-clock limit. `kick_worker`'s pg_net timeout is 150 s, so pg_net never gives up on a run that is still draining. (These values were revised after the final review: the first draft used a 120 s budget, a 20 s Ahrefs timeout and a 5 s pg_net timeout, which allowed overlapping loops and killed runs.)
 - If the worker crashes, its lease expires within 60 s and the next cron tick takes over.
 - These are unchanged: `outcome.ts`, `_shared/cache.ts`, `claim_pending_urls`, retries and backoff, and stuck-row reclaim.
 

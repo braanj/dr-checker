@@ -43,7 +43,7 @@ Browser --typed list / CSV--> POST /api/check (Nitro)
                                 |  kick_worker(): statement trigger + pg_cron (10s), x-worker-secret
                                 v
                    Edge Function: process-queue (Deno)
-                     - one leased drain loop: claims 5 due urls at a time (SKIP LOCKED, reclaims stuck rows), ≥300 ms between Ahrefs calls, 120 s budget
+                     - one leased drain loop: claims 5 due urls at a time (SKIP LOCKED, reclaims stuck rows), ≥300 ms between Ahrefs calls, 8 s Ahrefs timeout, 90 s budget, 60 s lease
                      - checks `domains` again, else calls Ahrefs (once per domain)
                      - updates url rows, upserts `domains`
 Browser <--Realtime broadcast `batch:<id>`-- triggers (realtime.send)

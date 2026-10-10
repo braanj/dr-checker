@@ -11,7 +11,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { cachedUrlFields, isFresh, type DomainCacheRow } from "../_shared/cache.ts";
 import { checkWorkerSecret } from "./auth.ts";
-import { drain, LEASE_TTL_SECONDS, type ClaimedRow, type DrainDeps } from "./drain.ts";
+import {
+  AHREFS_TIMEOUT_MS,
+  CLAIM_SIZE,
+  drain,
+  LEASE_TTL_SECONDS,
+  type ClaimedRow,
+  type DrainDeps,
+} from "./drain.ts";
 import {
   cacheWriteFor,
   classifyAhrefsResponse,
@@ -25,9 +32,6 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const AHREFS_DR_RATING_KEY = Deno.env.get("AHREFS_DR_RATING")!;
 const WORKER_SECRET = Deno.env.get("WORKER_SECRET");
-
-const CLAIM_SIZE = 5; // urls claimed per iteration
-const AHREFS_TIMEOUT_MS = 20_000; // a hung call must not outlive the run
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
