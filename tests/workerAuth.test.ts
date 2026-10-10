@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { checkWorkerSecret } from "../supabase/functions/process-queue/auth";
+import { checkWorkerSecret } from "../supabase/functions/_shared/auth";
 
 const SECRET = "a".repeat(64);
 

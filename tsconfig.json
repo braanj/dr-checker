@@ -1,10 +1,10 @@
 {
   // Nuxt generates the base config; `npm run typecheck` (nuxi typecheck)
-  // checks the app, server and tests. The Deno edge-function entrypoint is
-  // excluded (Deno globals, esm.sh import) — `deno check` covers it.
+  // checks the app, server and tests. The Deno edge-function
+  // entrypoints are excluded (Deno globals, esm.sh import) — `deno check` covers them.
   "extends": "./.nuxt/tsconfig.json",
   "compilerOptions": {
     "allowImportingTsExtensions": true
   },
-  "exclude": ["dist", ".data", ".output", "node_modules", "supabase/functions/process-queue/index.ts"]
+  "exclude": ["dist", ".data", ".output", "node_modules", "supabase/functions/process-queue/index.ts", "supabase/functions/fetch-meta/index.ts"]
 }

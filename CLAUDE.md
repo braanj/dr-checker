@@ -34,7 +34,7 @@ Supabase-side setup/deploy (not run by npm scripts):
 supabase functions deploy process-queue --no-verify-jwt
 ```
 Also required:
-- run `scripts/provision-worker-secret.sh <project-ref>` once (and to rotate): it sets the function secret `WORKER_SECRET` and the Vault entries `worker_secret`/`worker_url` that `kick_worker()` uses (ADR 0002);
+- run `scripts/provision-worker-secret.sh <project-ref>` once (and to rotate): it sets the function secret `WORKER_SECRET` and the Vault entries `worker_secret`/`worker_url`/`meta_worker_url` that `kick_worker()` and `kick_meta_worker()` use (ADR 0002/0003);
 - Realtime set to allow public channels.
 
 ## Architecture
@@ -72,6 +72,8 @@ group by b.id having b.processed_urls <> count(*) filter (where u.status in ('do
 
 **Domain pages (ADR 0003):** the worker also appends `domain_history` on every `ok` reading. `/domain/[domain]` is server-rendered from `/api/domain/[domain]`: 200 with SEO head tags and a CDN cache header only when the domain has an `ok` DR, otherwise 404 + `noindex` with a check button; non-canonical spellings 301 to `/domain/<normalized>`. `/sitemap.xml` (paged past PostgREST's 1,000-row cap) and `/robots.txt` are server routes.
 
+**Site metadata (ADR 0003):** a separate `fetch-meta` edge function, started every minute by the `fetch-meta` pg_cron job through `kick_meta_worker()` (Vault: `worker_secret` + `meta_worker_url`; only when some domain is due), claims one due domain at a time (`claim_meta_domains`, cadence in `meta_due()`: never fetched, ok > 30 days, error > 7 days, stuck > 2 min), up to 5 per run (60 s budget, 20 s hard deadline per domain). Every outbound request goes through `fetch-meta/safeFetch.ts`: http/https on ports 80/443 only, every resolved address checked by `netguard.ts` `isBlockedAddress` (private/loopback/link-local/CGNAT/multicast/reserved, IPv4-mapped/NAT64), ≤ 3 manually followed redirects re-checked per hop, 8 s per request, HTML ≤ 512 KB (stops at `</head>`), favicons ≤ 100 KB with an image-type allowlist. `parseHead.ts` is a dependency-free head parser. Title/description go to `domain_meta`; favicons to the public `favicons` Storage bucket.
+
 **Results display:** typed checks with ≤ 10 valid rows render inline on the home page at `/?check=<id>` (via `components/CheckResults.vue`). Typed checks of 11–100 rows and every CSV redirect to `/results/<id>`.
 
 ### Ahrefs integration and cache
@@ -102,6 +104,7 @@ There is no auth. Batches are anonymous, and the batch UUID in the results link 
 - `composables/useBatchRealtime.ts`: the broadcast subscription hook
 - `components/CheckResults.vue`: the results table shared by the home page and `/results/[batchId]`
 - `server/api/domain/[domain].get.ts`, `pages/domain/[domain].vue`: domain pages
+- `supabase/functions/fetch-meta/` (`index.ts`, `safeFetch.ts`, `netguard.ts`, `parseHead.ts`): site metadata worker; `supabase/functions/_shared/auth.ts`: shared worker-secret check
 - `server/routes/sitemap.xml.ts`, `server/routes/robots.txt.ts`, `server/utils/sitemap.ts`: crawling
 - `utils/` (auto-imported in the app): `domainPath`, `domainView` (SEO text, sparkline), `checkedAgo`, `retry`
 - `specs/adr/`: architecture decision records; `specs/`: implementation plans

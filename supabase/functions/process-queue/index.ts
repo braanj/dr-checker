@@ -11,7 +11,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { cachedUrlFields, isFresh, type DomainCacheRow } from "../_shared/cache.ts";
 import type { Database, TablesUpdate } from "../_shared/database.types.ts";
-import { checkWorkerSecret } from "./auth.ts";
+import { checkWorkerSecret } from "../_shared/auth.ts";
 import {
   AHREFS_TIMEOUT_MS,
   CLAIM_SIZE,

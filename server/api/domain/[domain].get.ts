@@ -35,5 +35,27 @@ export default defineEventHandler(async (event): Promise<DomainView> => {
     throw createError({ statusCode: 500, statusMessage: "Domain lookup failed" });
   }
 
-  return { domain: row.domain, dr: row.dr, checked_at: row.checked_at, history: history ?? [], meta: null };
+  const { data: metaRow, error: metaError } = await admin
+    .from("domain_meta")
+    .select("title, description, favicon_path, status")
+    .eq("domain", domain)
+    .maybeSingle();
+  if (metaError) {
+    console.error("domain api: meta query failed", domain, metaError.message);
+    throw createError({ statusCode: 500, statusMessage: "Domain lookup failed" });
+  }
+
+  const supabaseUrl = useRuntimeConfig().public.supabaseUrl as string;
+  const meta =
+    metaRow?.status === "ok"
+      ? {
+          title: metaRow.title,
+          description: metaRow.description,
+          favicon_url: metaRow.favicon_path
+            ? `${supabaseUrl}/storage/v1/object/public/favicons/${encodeURIComponent(metaRow.favicon_path)}`
+            : null,
+        }
+      : null;
+
+  return { domain: row.domain, dr: row.dr, checked_at: row.checked_at, history: history ?? [], meta };
 });
