@@ -83,6 +83,42 @@ export type Database = {
         }
         Relationships: []
       }
+      domain_meta: {
+        Row: {
+          attempts: number
+          claimed_at: string | null
+          description: string | null
+          domain: string
+          error: string | null
+          favicon_path: string | null
+          fetched_at: string | null
+          status: string | null
+          title: string | null
+        }
+        Insert: {
+          attempts?: number
+          claimed_at?: string | null
+          description?: string | null
+          domain: string
+          error?: string | null
+          favicon_path?: string | null
+          fetched_at?: string | null
+          status?: string | null
+          title?: string | null
+        }
+        Update: {
+          attempts?: number
+          claimed_at?: string | null
+          description?: string | null
+          domain?: string
+          error?: string | null
+          favicon_path?: string | null
+          fetched_at?: string | null
+          status?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
       domains: {
         Row: {
           checked_at: string
@@ -190,6 +226,7 @@ export type Database = {
         Args: { p_holder: string; p_ttl_seconds?: number }
         Returns: boolean
       }
+      claim_meta_domains: { Args: { p_limit?: number }; Returns: string[] }
       claim_pending_urls: {
         Args: { p_limit?: number }
         Returns: {
@@ -198,7 +235,12 @@ export type Database = {
           id: string
         }[]
       }
+      kick_meta_worker: { Args: never; Returns: undefined }
       kick_worker: { Args: never; Returns: undefined }
+      meta_due: {
+        Args: { p_claimed_at: string; p_fetched_at: string; p_status: string }
+        Returns: boolean
+      }
       register_check_request: {
         Args: { p_ip: string; p_limit?: number }
         Returns: boolean
