@@ -13,7 +13,11 @@ npm run dev       # nuxt dev
 npm run build     # nuxt build
 npm run preview   # nuxt preview
 npm test          # vitest (pure server/worker logic in tests/)
+npm run typecheck # nuxi typecheck (vue-tsc): app, server, tests — must be 0 errors
+npm run gen:types # regenerate supabase/functions/_shared/database.types.ts from the live project (needs SUPABASE_ACCESS_TOKEN)
 ```
+
+**After any migration:** run `npm run gen:types` and commit the result. `supabaseAdmin()` and the edge function's client are `createClient<Database>`, so a schema change that the code doesn't follow fails `npm run typecheck` (or `deno check`). Columns that are `text` + CHECK (`status`, `source`) are generated as `string`; narrowing them to unions is an explicit cast at the read boundary.
 
 There's no lint script (`eslint` is a devDependency but has no script or config yet). `deno check supabase/functions/process-queue/index.ts` type-checks the edge function.
 
