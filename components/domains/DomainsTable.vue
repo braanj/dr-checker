@@ -4,7 +4,6 @@
     <table class="hidden w-full text-left text-sm md:table">
       <thead class="sticky top-0 z-10 bg-white text-xs text-[#6e6e73]">
         <tr class="border-b border-black/5">
-          <!-- Task 8: header checkbox goes in this slot -->
           <th scope="col" class="w-10 py-3 pl-4"><slot name="select-header" /></th>
           <th scope="col" :aria-sort="ariaSort('domain')" class="px-3 py-3 font-medium">
             <button type="button" :class="sortBtn" @click="emit('sort', 'domain')">Domain <span aria-hidden="true">{{ arrow("domain") }}</span></button>
@@ -72,7 +71,6 @@
         <li v-for="n in 8" :key="`sk-${n}`" class="p-4" aria-hidden="true"><div class="h-10 animate-pulse rounded bg-black/5" /></li>
       </template>
       <li v-for="row in rows" v-else :key="row.domain" class="flex items-center gap-3 p-4">
-        <!-- Task 8: card checkbox goes in this slot -->
         <div class="empty:hidden"><slot name="select-card" :row="row" /></div>
         <img v-if="row.favicon_url" :src="row.favicon_url" width="20" height="20" loading="lazy" alt="" class="h-5 w-5 shrink-0 rounded" />
         <span v-else class="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/5 text-[11px] font-medium uppercase text-[#6e6e73]" aria-hidden="true">{{ row.domain.charAt(0) }}</span>
