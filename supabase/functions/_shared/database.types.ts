@@ -49,16 +49,19 @@ export type Database = {
           created_at: string
           id: number
           ip: string
+          kind: string
         }
         Insert: {
           created_at?: string
           id?: never
           ip: string
+          kind?: string
         }
         Update: {
           created_at?: string
           id?: never
           ip?: string
+          kind?: string
         }
         Relationships: []
       }
@@ -124,18 +127,21 @@ export type Database = {
           checked_at: string
           domain: string
           dr: number | null
+          dr_change: number | null
           status: string
         }
         Insert: {
           checked_at?: string
           domain: string
           dr?: number | null
+          dr_change?: number | null
           status: string
         }
         Update: {
           checked_at?: string
           domain?: string
           dr?: number | null
+          dr_change?: number | null
           status?: string
         }
         Relationships: []
@@ -235,6 +241,14 @@ export type Database = {
           id: string
         }[]
       }
+      domain_trends: {
+        Args: { p_domains: string[]; p_n: number }
+        Returns: {
+          checked_at: string
+          domain: string
+          dr: number
+        }[]
+      }
       kick_meta_worker: { Args: never; Returns: undefined }
       kick_worker: { Args: never; Returns: undefined }
       meta_due: {
@@ -242,7 +256,7 @@ export type Database = {
         Returns: boolean
       }
       register_check_request: {
-        Args: { p_ip: string; p_limit?: number }
+        Args: { p_ip: string; p_kind?: string; p_limit?: number }
         Returns: boolean
       }
       release_worker_lease: { Args: { p_holder: string }; Returns: undefined }
