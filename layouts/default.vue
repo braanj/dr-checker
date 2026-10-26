@@ -8,11 +8,11 @@
     <div class="min-w-0 flex-1">
       <!-- < md: slim top bar -->
       <header class="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-black/5 bg-white/70 px-4 backdrop-blur-xl md:hidden">
-        <NuxtLink to="/" aria-current="false" class="font-semibold tracking-tight">DR Checker</NuxtLink>
+        <NuxtLink to="/" aria-current="false" class="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent font-semibold tracking-tight">DR Checker</NuxtLink>
         <button
           ref="menuButton"
           type="button"
-          class="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-black/5"
+          class="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           aria-label="Open menu"
           aria-controls="mobile-drawer"
           :aria-expanded="open"
@@ -30,7 +30,7 @@
     </div>
 
     <!-- < md: overlay drawer -->
-    <div v-if="open" class="fixed inset-0 z-40 md:hidden" @keydown="onKeydown">
+    <div v-if="open" class="fixed inset-0 z-40 md:hidden">
       <div class="absolute inset-0 bg-black/30" aria-hidden="true" @click="close" />
       <div
         id="mobile-drawer"
@@ -92,10 +92,14 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 watch(open, async (isOpen) => {
+  // Document level so Esc / Tab work even when focus fell to <body>.
+  if (isOpen) document.addEventListener("keydown", onKeydown);
+  else document.removeEventListener("keydown", onKeydown);
   await nextTick();
   if (isOpen) drawerEl.value?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
   else menuButton.value?.focus();
 });
 
 watch(() => route.fullPath, close);
+onBeforeUnmount(() => document.removeEventListener("keydown", onKeydown));
 </script>
