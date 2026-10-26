@@ -1,10 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 let allowed = true;
+let lastArgs: Record<string, unknown> = {};
 const headers: Record<string, string> = {};
 
 vi.mock("../server/utils/supabaseAdmin", () => ({
-  supabaseAdmin: () => ({ rpc: async () => ({ data: allowed, error: null }) }),
+  supabaseAdmin: () => ({
+    rpc: async (_fn: string, args: Record<string, unknown>) => {
+      lastArgs = args;
+      return { data: allowed, error: null };
+    },
+  }),
 }));
 vi.stubGlobal("getRequestHeader", () => "203.0.113.7");
 vi.stubGlobal("getRequestIP", () => undefined);
@@ -33,5 +39,20 @@ describe("assertRateLimit", () => {
     allowed = true;
     await expect(assertRateLimit(event)).resolves.toBeUndefined();
     expect(headers["Retry-After"]).toBeUndefined();
+  });
+
+  it("sends p_kind 'check' by default", async () => {
+    allowed = true;
+    await assertRateLimit(event);
+    expect(lastArgs).toEqual({ p_ip: "203.0.113.7", p_limit: 10, p_kind: "check" });
+  });
+
+  it("uses the export bucket and message", async () => {
+    allowed = false;
+    await expect(assertRateLimit(event, "export")).rejects.toMatchObject({
+      statusCode: 429,
+      message: "Too many exports — try again in a minute",
+    });
+    expect(lastArgs.p_kind).toBe("export");
   });
 });
