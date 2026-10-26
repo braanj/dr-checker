@@ -57,8 +57,10 @@ create table if not exists public.domains (
   domain     text primary key,
   dr         numeric,
   status     text not null check (status in ('ok', 'no_data')),
-  checked_at timestamptz not null default now()
+  checked_at timestamptz not null default now(),
+  dr_change  numeric  -- latest ok reading minus the previous one (maintained by trigger)
 );
+create index if not exists idx_domains_dr_change on public.domains (dr_change);
 create index if not exists idx_domains_dr on public.domains (dr);
 create index if not exists idx_domains_checked_at on public.domains (checked_at);
 
@@ -66,9 +68,10 @@ create index if not exists idx_domains_checked_at on public.domains (checked_at)
 create table if not exists public.check_requests (
   id         bigint generated always as identity primary key,
   ip         text not null,
+  kind       text not null default 'check' check (kind in ('check', 'export')),
   created_at timestamptz not null default now()
 );
-create index if not exists idx_check_requests_ip_created on public.check_requests (ip, created_at);
+create index if not exists idx_check_requests_ip_kind_created on public.check_requests (ip, kind, created_at);
 
 -- One row per real Ahrefs reading (ADR 0003); written by the worker.
 create table if not exists public.domain_history (
@@ -78,6 +81,44 @@ create table if not exists public.domain_history (
   checked_at timestamptz not null,
   unique (domain, checked_at)  -- also serves "latest first per domain" (backward index scan)
 );
+
+-- domains.dr_change = latest reading minus the one before it.
+create or replace function public.refresh_dr_change()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  update public.domains d
+  set dr_change = (
+    select (array_agg(t.dr order by t.checked_at desc))[1] - (array_agg(t.dr order by t.checked_at desc))[2]
+    from (select dr, checked_at from public.domain_history
+          where domain = new.domain order by checked_at desc limit 2) t
+  )
+  where d.domain = new.domain;
+  return null;
+end;
+$$;
+
+drop trigger if exists domain_history_refresh_dr_change on public.domain_history;
+create trigger domain_history_refresh_dr_change
+  after insert or update on public.domain_history
+  for each row execute function public.refresh_dr_change();
+
+-- Last p_n readings per domain, newest first, for list sparklines.
+create or replace function public.domain_trends(p_domains text[], p_n integer)
+returns table(domain text, dr numeric, checked_at timestamptz)
+language sql
+stable
+set search_path = public
+as $$
+  select q.domain, h.dr, h.checked_at
+  from unnest(p_domains) as q(domain)
+  cross join lateral (
+    select dr, checked_at from public.domain_history
+    where domain = q.domain order by checked_at desc limit p_n
+  ) h;
+$$;
 
 -- keep `updated_at` fresh
 create or replace function public.set_updated_at()
@@ -185,35 +226,36 @@ $$;
 
 -- ----------------------------------------------------------------------------
 -- Rate limiting: records the request and returns true, or returns false if
--- the IP already made p_limit requests in the last minute.
+-- the IP already made p_limit requests of that kind in the last minute.
 -- ----------------------------------------------------------------------------
 
-create or replace function public.register_check_request(p_ip text, p_limit integer default 10)
+create or replace function public.register_check_request(p_ip text, p_limit integer default 10, p_kind text default 'check')
 returns boolean
 language plpgsql
 as $$
 declare
   v_recent integer;
 begin
-  -- serialize concurrent requests from the same IP so the count is exact
-  perform pg_advisory_xact_lock(hashtext(p_ip));
+  -- serialize concurrent requests from the same IP and kind so the count is exact
+  perform pg_advisory_xact_lock(hashtext(p_ip || ':' || p_kind));
 
   select count(*) into v_recent
   from public.check_requests
-  where ip = p_ip and created_at > now() - interval '1 minute';
+  where ip = p_ip and kind = p_kind and created_at > now() - interval '1 minute';
 
   if v_recent >= p_limit then
     return false;
   end if;
 
-  insert into public.check_requests (ip) values (p_ip);
+  insert into public.check_requests (ip, kind) values (p_ip, p_kind);
   return true;
 end;
 $$;
 
 -- RPCs are server-only (service role).
 revoke execute on function public.claim_pending_urls(integer) from public, anon, authenticated;
-revoke execute on function public.register_check_request(text, integer) from public, anon, authenticated;
+revoke execute on function public.register_check_request(text, integer, text) from public, anon, authenticated;
+revoke execute on function public.domain_trends(text[], integer) from public, anon, authenticated;
 
 -- ----------------------------------------------------------------------------
 -- Row Level Security: enabled with NO policies, so nothing is readable with
