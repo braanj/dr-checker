@@ -8,7 +8,7 @@ A Nuxt 3 + Supabase app, live at https://dr-bulkchecker.netlify.app.
 
 - **Checking:** type domains (≤ 100) or upload a CSV (≤ 1,000 valid rows) to get their Ahrefs Domain Rating. There are no accounts.
 - **Processing:** server-side and paced. Progress streams to the browser over private Realtime broadcasts, and results download as CSV.
-- **Directory:** every domain with a DR joins the public directory (the `domains` table, which doubles as a 30-day cache). Each one gets an SEO page at `/domain/<domain>` with DR history, plus its favicon, title and description fetched in the background.
+- **Directory:** every domain with a DR joins the public directory (the `domains` table, which doubles as a 30-day cache), browsable at `/domains` (sortable table, selection, CSV export). Each one gets an SEO page at `/domain/<domain>` with DR history, plus its favicon, title and description fetched in the background.
 
 **Design history lives in `specs/adr/`** (0001 domain directory, 0002 worker trigger/secret, 0003 domain pages and metadata). Implementation plans are in `specs/`. Read the relevant ADR before changing a subsystem it covers.
 
@@ -66,7 +66,10 @@ pg_cron (1 min) → kick_meta_worker() → Edge Function fetch-meta → safeFetc
   - "Private channels only" is **enabled** in the Supabase dashboard, so a public channel subscription gets nothing.
   - `useBatchRealtime` subscribes (`{ private: true }`) *before* loading the `/api/status` snapshot (live rows win over the snapshot).
   - If the channel fails or stays silent for 10 s while a batch is unfinished, it polls `/api/status` every 5 s (`utils/realtimePoll.ts`).
-- **Results display:** typed checks with ≤ 10 valid rows render inline at `/?check=<id>`. Everything else redirects to `/results/<id>`. Both use `components/CheckResults.vue`.
+- **Results display:** typed checks with ≤ 10 valid rows render inline at `/?check=<id>`. Everything else redirects to `/results/<id>`. Both use `components/CheckResults.vue`. The check page also lists "My recent checks" (`utils/recentChecks.ts`, localStorage `dr-recent-checks`); the directory lives at `/domains`, not on the check page.
+- **App shell:** `layouts/default.vue` + `components/AppSidebar.vue` (active section from `utils/navSection.ts`). The collapsed state is `localStorage['dr-sidebar']` plus a pre-paint `<html data-sidebar="collapsed">`, deliberately not a cookie because `/domain/*` is CDN-cached.
+- **Domains page:** `pages/domains.vue` + `components/domains/*`, server-rendered via `useFetch` keyed on the URL query (`utils/domainsTable.ts` maps route ⇄ state). `GET /api/domains` (pageSize 20|50|100, `sortBy` incl. `dr_change`; rows carry `dr_change`, title, favicon, `trend`) is built by pure `server/utils/domainsQuery.ts` + `domainTrends.ts` and sent with `Cache-Control: public, s-maxage=60, stale-while-revalidate=300`. `domains.dr_change` is maintained by the AFTER INSERT/UPDATE trigger `refresh_dr_change` on `domain_history`; trends come from the `domain_trends(p_domains, p_n)` RPC.
+- **Selection and export:** the selection persists in sessionStorage `dr-domains-selection` (`utils/domainSelection.ts`, cap 1,000). `POST /api/domains/export` takes ≤ 1,000 domains and returns a CSV (`server/utils/domainsCsv.ts`, formula-injection guard, queried 200 at a time).
 - **Normalization:** `normalizeDomain` (`server/utils/domain.ts`) reduces input to the host and strips only a leading `www.`, so subdomains stay separate. Hosts without a dot are rejected.
 
 ### Domain pages and metadata (ADR 0003)
@@ -88,7 +91,7 @@ pg_cron (1 min) → kick_meta_worker() → Edge Function fetch-meta → safeFetc
 - All DB access goes through `server/utils/supabaseAdmin.ts` (service role, typed `createClient<Database>`). It is **server-only**.
 - Every table has RLS on and no policies. Every RPC has execute revoked from `public`/`anon`/`authenticated`.
 - The browser's anon client (`composables/useSupabase.ts`) is used only for Realtime.
-- `/api/check` allows 10 requests/min per IP (`register_check_request`, IP from `x-nf-client-connection-ip`) and sends `Retry-After: 60` on 429.
+- `/api/check` and `/api/domains/export` each allow 10 requests/min per IP, in separate buckets (`check_requests.kind` = `check`|`export`; `register_check_request(p_ip, p_limit, p_kind)`, `assertRateLimit(event, kind)`; IP from `x-nf-client-connection-ip`), and send `Retry-After: 60` on 429.
 - `status`/`source` columns are `text` + CHECK, so the generated types say `string`. Narrow them with an explicit cast where you read them.
 
 ## Where things are
@@ -97,9 +100,10 @@ pg_cron (1 min) → kick_meta_worker() → Edge Function fetch-meta → safeFetc
 - `supabase/functions/process-queue/`: `drain.ts` (loop and limits), `outcome.ts` (decisions), `index.ts` (wiring).
 - `supabase/functions/fetch-meta/`: `safeFetch.ts`, `netguard.ts`, `parseHead.ts`, `metaOutcome.ts`, `index.ts`.
 - `supabase/functions/_shared/`: `auth.ts`, `cache.ts`, `database.types.ts` (generated).
-- `server/api/check.post.ts`: the check entry point.
-- `server/utils/`: `checkInput.ts` (pure parsing, caps, cache planning), `createCheck.ts`, `rateLimit.ts`, `sitemap.ts`.
-- `pages/domain/[domain].vue`, `pages/results/[batchId].vue`, `pages/index.vue`.
-- `utils/` (auto-imported in the app): `domainPath`, `domainView` (SEO text, `formatDr`, `siteBase`, `metaViewFrom`, sparkline), `checkedAgo`/`isoDate`, `retry`, `realtimePoll`.
+- `server/api/check.post.ts`: the check entry point. `server/api/domains/export.post.ts`: the CSV export. `server/api/domains.get.ts`: the directory listing.
+- `server/utils/`: `checkInput.ts` (pure parsing, caps, cache planning), `createCheck.ts`, `rateLimit.ts`, `sitemap.ts`, `domainsQuery.ts`, `domainTrends.ts`, `domainsCsv.ts`.
+- `layouts/default.vue`, `components/AppSidebar.vue`, `components/domains/*`.
+- `pages/domain/[domain].vue`, `pages/domains.vue`, `pages/results/[batchId].vue`, `pages/index.vue`, `pages/docs.vue` (sticky TOC with scroll-spy).
+- `utils/` (auto-imported in the app): `domainPath`, `domainView` (SEO text, `formatDr`, `siteBase`, `metaViewFrom`, sparkline), `checkedAgo`/`isoDate`, `retry`, `realtimePoll`, `navSection`, `recentChecks`, `domainsTable` (`drBand`, `formatDelta`, `pageRange`), `domainSelection`.
 - `scripts/provision-worker-secret.sh <project-ref>`: provisions or rotates `WORKER_SECRET` and the Vault entries `worker_secret`, `worker_url` and `meta_worker_url`. Run it once per project; rotating is safe (crons retry).
 - `tests/`: Vitest unit tests. `supabase/tests/`: rollback-only SQL scenarios.
