@@ -66,6 +66,7 @@ export const DEFAULT_STATE: DomainsState = {
   checkedTo: "",
 };
 
+const MAX_PAGE = 100000;
 const SORTS: readonly string[] = ["checked_at", "domain", "dr", "dr_change"];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -86,7 +87,8 @@ function date(v: unknown): string {
 }
 
 export function parseDomainsRoute(q: Record<string, unknown>): DomainsState {
-  const page = /^\d+$/.test(str(q.page)) ? Math.max(1, Number(str(q.page))) : 1;
+  const rawPage = Number(str(q.page));
+  const page = /^\d+$/.test(str(q.page)) && rawPage >= 1 && rawPage <= MAX_PAGE ? rawPage : 1;
   const size = Number(str(q.pageSize));
   const sortBy = str(q.sortBy);
   const sortDir = str(q.sortDir);

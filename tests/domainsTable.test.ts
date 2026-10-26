@@ -49,6 +49,11 @@ describe("route state", () => {
       parseDomainsRoute({ pageSize: "37", sortBy: "foo", sortDir: "up", page: "-2", drMin: "abc" }),
     ).toEqual(DEFAULT_STATE);
   });
+  it("caps absurd page numbers", () => {
+    expect(parseDomainsRoute({ page: "99999999999999999999" }).page).toBe(1);
+    expect(parseDomainsRoute({ page: "100001" }).page).toBe(1);
+    expect(parseDomainsRoute({ page: "100000" }).page).toBe(100000);
+  });
   it("round-trips", () => {
     const q = { pageSize: "100", sortBy: "dr_change", sortDir: "asc", page: "3", tld: "io" };
     expect(toRouteQuery(parseDomainsRoute(q))).toEqual(q);

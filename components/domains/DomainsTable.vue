@@ -53,7 +53,7 @@
             <span v-else class="text-[#86868b]">—</span>
           </td>
           <td class="px-3 py-3 text-right tabular-nums">
-            <span :class="deltaClass(row.dr_change)" :aria-label="delta(row.dr_change).label">{{ delta(row.dr_change).text }}</span>
+            <DomainsDrDelta :change="row.dr_change" />
           </td>
           <td class="hidden px-3 py-3 lg:table-cell"><DomainsTrendSpark :values="row.trend" /></td>
           <td class="whitespace-nowrap py-3 pl-3 pr-4 text-right tabular-nums text-[#6e6e73]">
@@ -89,7 +89,7 @@
         <div class="shrink-0 text-right tabular-nums">
           <p v-if="row.dr !== null" class="font-medium">DR {{ formatDr(Number(row.dr)) }}</p>
           <p v-else class="text-[#86868b]">—</p>
-          <p class="text-xs" :class="deltaClass(row.dr_change)" :aria-label="delta(row.dr_change).label">{{ delta(row.dr_change).text }}</p>
+          <DomainsDrDelta :change="row.dr_change" class="text-xs" />
         </div>
       </li>
     </ul>
@@ -98,7 +98,7 @@
 
 <script setup lang="ts">
 import type { DomainListRow, SortBy } from "~/server/utils/domainsQuery";
-import { formatDelta, type DomainsState } from "~/utils/domainsTable";
+import type { DomainsState } from "~/utils/domainsTable";
 
 const props = defineProps<{
   rows: DomainListRow[];
@@ -118,13 +118,6 @@ function ariaSort(col: SortBy) {
 function arrow(col: SortBy) {
   if (props.sortBy !== col) return "";
   return props.sortDir === "asc" ? "↑" : "↓";
-}
-function delta(change: number | null) {
-  return formatDelta(change === null ? null : Number(change));
-}
-function deltaClass(change: number | null) {
-  const dir = delta(change).dir;
-  return dir === "up" ? "text-emerald-600" : dir === "down" ? "text-red-600" : "text-[#6e6e73]";
 }
 function go(domain: string) {
   return navigateTo(domainPath(domain));

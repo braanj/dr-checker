@@ -13,6 +13,10 @@
           <p class="text-[15px] text-[#1d1d1f]">Couldn't load domains.</p>
           <button type="button" class="mt-3 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" @click="() => refresh()">Retry</button>
         </div>
+        <div v-else-if="data && data.total > 0 && data.domains.length === 0" class="p-10 text-center">
+          <p class="text-[15px] text-[#1d1d1f]">This page is out of range.</p>
+          <button type="button" class="mt-3 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" @click="update({ page: 1 }, true)">Go to page 1</button>
+        </div>
         <div v-else-if="data && data.domains.length === 0" class="p-10 text-center">
           <template v-if="hasFilters">
             <p class="text-[15px] text-[#1d1d1f]">No domains match these filters.</p>
