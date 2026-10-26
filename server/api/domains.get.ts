@@ -1,15 +1,14 @@
-// Public (no auth required): powers the domain directory on the home page.
-// Reads the `domains` table (one row per domain, latest DR + check date)
-// via the service-role client, since the table has no anon policies.
+// Public (no auth required): powers the /domains directory page.
+// Reads the `domains` table (one row per domain, latest DR + check date +
+// DR change) via the service-role client, since the table has no anon
+// policies, and enriches the page with title/favicon (domain_meta) and a
+// DR trend (domain_trends RPC).
 // Only 'ok' rows are listed; 'no_data' rows are cache-only.
 
 import { supabaseAdmin } from "../utils/supabaseAdmin";
-
-const PAGE_SIZE = 20;
-
-const SORT_COLUMNS = new Set(["checked_at", "domain", "dr"]);
-const SORT_DIRS = new Set(["asc", "desc"]);
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+import { parseDomainsQuery, DomainsQueryError, type DomainsResponse } from "../utils/domainsQuery";
+import { groupTrends } from "../utils/domainTrends";
+import { metaViewFrom } from "../../utils/domainView";
 
 // Postgres LIKE/ILIKE treat literal `%`, `_`, and `\` as wildcards/escape
 // chars even though postgrest-js parameterizes the value (no injection risk,
@@ -18,47 +17,25 @@ function escapeLike(value: string) {
   return value.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
-function parseNumber(value: unknown): number | null {
-  if (typeof value !== "string" || value.trim() === "") return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
-function parseDate(value: unknown): string | null {
-  if (typeof value !== "string" || !DATE_RE.test(value)) return null;
-  return Number.isNaN(Date.parse(value)) ? null : value;
-}
-
-export default defineEventHandler(async (event) => {
-  const query = getQuery(event);
-  const page = Math.max(1, parseInt((query.page as string) ?? "1", 10) || 1);
-
-  const sortBy = ((query.sortBy as string) ?? "checked_at").trim();
-  if (!SORT_COLUMNS.has(sortBy)) {
-    throw createError({ statusCode: 400, statusMessage: `Invalid sortBy: ${sortBy}` });
+export default defineEventHandler(async (event): Promise<DomainsResponse> => {
+  let p;
+  try {
+    p = parseDomainsQuery(getQuery(event));
+  } catch (e) {
+    if (e instanceof DomainsQueryError) throw createError({ statusCode: 400, statusMessage: e.message });
+    throw e;
   }
+  const { page, pageSize, sortBy, sortDir, domain: domainFilter, tld: tldFilter } = p;
+  const { drMin, drMax, checkedFrom, checkedTo } = p;
 
-  const sortDir = ((query.sortDir as string) ?? "desc").trim();
-  if (!SORT_DIRS.has(sortDir)) {
-    throw createError({ statusCode: 400, statusMessage: `Invalid sortDir: ${sortDir}` });
-  }
-
-  const domainFilter = typeof query.domain === "string" ? query.domain.trim() : "";
-  const tldFilter =
-    typeof query.tld === "string" ? query.tld.trim().replace(/^\.+/, "").toLowerCase() : "";
-  const drMin = parseNumber(query.drMin);
-  const drMax = parseNumber(query.drMax);
-  const checkedFrom = parseDate(query.checkedFrom);
-  const checkedTo = parseDate(query.checkedTo);
-
-  const from = (page - 1) * PAGE_SIZE;
-  const to = from + PAGE_SIZE - 1;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
 
   const admin = supabaseAdmin();
 
   let q = admin
     .from("domains")
-    .select("domain, dr, checked_at", { count: "exact" })
+    .select("domain, dr, checked_at, dr_change", { count: "exact" })
     .eq("status", "ok");
 
   if (domainFilter) q = q.ilike("domain", `%${escapeLike(domainFilter)}%`);
@@ -75,21 +52,58 @@ export default defineEventHandler(async (event) => {
   const { data, error, count } = await q
     .order(sortBy, {
       ascending: sortDir === "asc",
-      ...(sortBy === "dr" ? { nullsFirst: false } : {}),
+      ...(sortBy === "dr" || sortBy === "dr_change" ? { nullsFirst: false } : {}),
     })
     .range(from, to);
 
   if (error) {
+    console.error("domains api: list query failed", error.message);
     throw createError({ statusCode: 500, statusMessage: error.message });
   }
 
+  const rows = data ?? [];
   const total = count ?? 0;
+  const pageDomains = rows.map((r) => r.domain);
+  const metaByDomain = new Map<string, { title: string | null; favicon_url: string | null }>();
+  let trends: Record<string, number[]> = {};
+
+  if (pageDomains.length > 0) {
+    const supabaseUrl = useRuntimeConfig().public.supabaseUrl as string;
+    const [metaRes, trendRes] = await Promise.all([
+      admin
+        .from("domain_meta")
+        .select("domain, title, description, favicon_path, status")
+        .in("domain", pageDomains),
+      admin.rpc("domain_trends", { p_domains: pageDomains, p_n: 12 }),
+    ]);
+    if (metaRes.error) {
+      console.error("domains api: meta query failed", metaRes.error.message);
+      throw createError({ statusCode: 500, statusMessage: metaRes.error.message });
+    }
+    if (trendRes.error) {
+      console.error("domains api: trends query failed", trendRes.error.message);
+      throw createError({ statusCode: 500, statusMessage: trendRes.error.message });
+    }
+    for (const m of metaRes.data ?? []) {
+      const view = metaViewFrom(m, supabaseUrl);
+      metaByDomain.set(m.domain, { title: view?.title ?? null, favicon_url: view?.favicon_url ?? null });
+    }
+    trends = groupTrends(pageDomains, trendRes.data ?? []);
+  }
 
   return {
-    domains: data ?? [],
+    domains: rows.map((r) => ({
+      domain: r.domain,
+      dr: r.dr,
+      checked_at: r.checked_at,
+      dr_change: r.dr_change,
+      title: metaByDomain.get(r.domain)?.title ?? null,
+      favicon_url: metaByDomain.get(r.domain)?.favicon_url ?? null,
+      trend: trends[r.domain] ?? [],
+    })),
     page,
-    pageSize: PAGE_SIZE,
+    pageSize,
     total,
-    totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)),
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
   };
 });
