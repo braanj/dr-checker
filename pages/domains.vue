@@ -15,7 +15,7 @@
         </div>
         <div v-else-if="data && data.total > 0 && data.domains.length === 0" class="p-10 text-center">
           <p class="text-[15px] text-[#1d1d1f]">This page is out of range.</p>
-          <button type="button" class="mt-3 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" @click="update({ page: 1 }, true)">Go to page 1</button>
+          <button type="button" class="mt-3 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" @click="update({ page: 1 })">Go to page 1</button>
         </div>
         <div v-else-if="data && data.domains.length === 0" class="p-10 text-center">
           <template v-if="hasFilters">
@@ -40,14 +40,14 @@
               class="h-4 w-4 cursor-pointer rounded accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               :checked="pageState === 'all'"
               :indeterminate="pageState === 'some'"
-              @change="onTogglePage(($event.target as HTMLInputElement).checked)"
+              @change="onTogglePage($event)"
             />
           </template>
           <template #select-cell="{ row }">
-            <input type="checkbox" :aria-label="`Select ${row.domain}`" class="h-4 w-4 cursor-pointer rounded accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" :checked="selection.has(row.domain)" @change="onToggle(row.domain)" />
+            <input type="checkbox" :aria-label="`Select ${row.domain}`" class="h-4 w-4 cursor-pointer rounded accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" :checked="selection.has(row.domain)" @change="onToggle(row.domain, $event)" />
           </template>
           <template #select-card="{ row }">
-            <input type="checkbox" :aria-label="`Select ${row.domain}`" class="h-4 w-4 cursor-pointer rounded accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" :checked="selection.has(row.domain)" @change="onToggle(row.domain)" />
+            <input type="checkbox" :aria-label="`Select ${row.domain}`" class="h-4 w-4 cursor-pointer rounded accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" :checked="selection.has(row.domain)" @change="onToggle(row.domain, $event)" />
           </template>
         </DomainsTable>
       </div>
@@ -58,7 +58,7 @@
         :page-size="data.pageSize"
         :total="data.total"
         :total-pages="data.totalPages"
-        @page="(p) => update({ page: p }, true)"
+        @page="(p) => update({ page: p })"
         @page-size="(n) => update({ pageSize: n as DomainsState['pageSize'] })"
       />
 
@@ -83,10 +83,6 @@ import { DEFAULT_STATE, nextSort, parseDomainsRoute, toRouteQuery, type DomainsS
 const route = useRoute();
 const router = useRouter();
 
-if (import.meta.server) {
-  useResponseHeader("Cache-Control").value = "public, s-maxage=60, stale-while-revalidate=300";
-}
-
 useHead({
   title: "Domain directory | DR Checker",
   meta: [
@@ -103,15 +99,26 @@ const { data, pending, error, refresh } = await useFetch<DomainsResponse>("/api/
   query: computed(() => toRouteQuery(state.value)),
 });
 
+// Mirror the /domain/* rule: CDN-cache only on success; a failed render is
+// 503 + no-store (no noindex, so a blip never de-indexes the page).
+if (import.meta.server) {
+  const cacheControl = useResponseHeader("Cache-Control");
+  if (!error.value) {
+    cacheControl.value = "public, s-maxage=60, stale-while-revalidate=300";
+  } else {
+    cacheControl.value = "no-store";
+    setResponseStatus(useRequestEvent()!, 503);
+  }
+}
+
 const hasFilters = computed(() => {
   const s = state.value;
   return !!(s.domain || s.tld || s.drMin || s.drMax || s.checkedFrom || s.checkedTo);
 });
 
 // Any change resets to page 1 unless it is a page change itself.
-function update(patch: Partial<DomainsState>, keepPage = false) {
+function update(patch: Partial<DomainsState>) {
   const next = { ...state.value, ...patch, page: patch.page ?? 1 };
-  if (!keepPage && patch.page === undefined) next.page = 1;
   return router.replace({ query: toRouteQuery(next) });
 }
 
@@ -139,11 +146,18 @@ function commit(r: { sel: Set<string>; capped: boolean }) {
 }
 const pageDomains = computed(() => data.value?.domains.map((d) => d.domain) ?? []);
 const pageState = computed(() => pageCheckState(selection.value, pageDomains.value));
-function onToggle(domain: string) {
-  commit(toggleDomain(selection.value, domain));
+// A rejected check at the cap must not stay visually checked.
+function onToggle(domain: string, e: Event) {
+  const r = toggleDomain(selection.value, domain);
+  commit(r);
+  if (r.capped && !r.sel.has(domain)) (e.target as HTMLInputElement).checked = false;
 }
-function onTogglePage(on: boolean) {
-  commit(setPage(selection.value, pageDomains.value, on));
+function onTogglePage(e: Event) {
+  const input = e.target as HTMLInputElement;
+  commit(setPage(selection.value, pageDomains.value, input.checked));
+  const st = pageCheckState(selection.value, pageDomains.value);
+  input.checked = st === "all";
+  input.indeterminate = st === "some";
 }
 function clearSelection() {
   commit({ sel: new Set(), capped: false });

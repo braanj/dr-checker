@@ -117,6 +117,10 @@ const inlineCheckId = computed(() =>
   typeof route.query.check === "string" ? route.query.check : null,
 );
 
+watch(inlineCheckId, () => {
+  completed.value = false;
+});
+
 const canSubmit = computed(() =>
   mode.value === "typed" ? domainsText.value.trim().length > 0 : !!file.value,
 );

@@ -24,6 +24,10 @@ describe("parseExportBody", () => {
     const many = Array.from({ length: 1001 }, (_, i) => `d${i}.com`);
     expect(() => parseExportBody({ domains: many })).toThrow("At most 1000 domains per export");
   });
+  it("rejects an oversized raw list before normalizing", () => {
+    const raw = Array.from({ length: 5001 }, () => "a.com");
+    expect(() => parseExportBody({ domains: raw })).toThrow("At most 1000 domains per export");
+  });
   it("counts after dedupe", () => {
     const dup = [...Array.from({ length: 1000 }, (_, i) => `d${i}.com`), "d0.com"];
     expect(parseExportBody({ domains: dup })).toHaveLength(1000);

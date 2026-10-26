@@ -49,12 +49,14 @@ export default defineEventHandler(async (event): Promise<DomainsResponse> => {
   if (checkedFrom) q = q.gte("checked_at", `${checkedFrom}T00:00:00.000Z`);
   if (checkedTo) q = q.lte("checked_at", `${checkedTo}T23:59:59.999Z`);
 
-  const { data, error, count } = await q
-    .order(sortBy, {
-      ascending: sortDir === "asc",
-      ...(sortBy === "dr" || sortBy === "dr_change" ? { nullsFirst: false } : {}),
-    })
-    .range(from, to);
+  let ordered = q.order(sortBy, {
+    ascending: sortDir === "asc",
+    ...(sortBy === "dr" || sortBy === "dr_change" ? { nullsFirst: false } : {}),
+  });
+  // Tiebreaker: many rows tie on dr/dr_change/checked_at, and without a
+  // total order OFFSET/LIMIT pages can repeat or skip rows.
+  if (sortBy !== "domain") ordered = ordered.order("domain", { ascending: true });
+  const { data, error, count } = await ordered.range(from, to);
 
   if (error) {
     console.error("domains api: list query failed", error.message);

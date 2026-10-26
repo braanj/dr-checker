@@ -12,16 +12,19 @@ export function parseExportBody(body: unknown): string[] {
   if (!Array.isArray(domains)) {
     throw new ExportInputError("Expected JSON { domains: string[] }");
   }
+  const tooMany = () => new ExportInputError(`At most ${EXPORT_MAX} domains per export`);
+  // Bound the raw input before normalizing, and stop as soon as the distinct
+  // set exceeds the cap. This slightly narrows "400 only after dedupe" to
+  // protect the pre-rate-limit path from huge payloads.
+  if (domains.length > EXPORT_MAX * 5) throw tooMany();
   const seen = new Set<string>();
   for (const entry of domains) {
     if (typeof entry !== "string") continue;
     const d = normalizeDomain(entry);
     if (d) seen.add(d);
+    if (seen.size > EXPORT_MAX) throw tooMany();
   }
   if (seen.size === 0) throw new ExportInputError("No valid domains to export");
-  if (seen.size > EXPORT_MAX) {
-    throw new ExportInputError(`At most ${EXPORT_MAX} domains per export`);
-  }
   return [...seen];
 }
 

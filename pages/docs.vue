@@ -27,7 +27,7 @@
 
       <div class="mt-12 min-w-0 lg:col-start-1 lg:row-start-2">
         <!-- Overview -->
-        <section id="overview">
+        <section class="scroll-mt-16 md:scroll-mt-8" id="overview">
           <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">1. Overview</h2>
           <p class="mt-3">
             This tool checks the <strong>Domain Rating (DR)</strong> — Ahrefs' 0–100 score for how strong
@@ -42,7 +42,7 @@
         </section>
 
         <!-- Checking -->
-        <section id="checking">
+        <section class="scroll-mt-16 md:scroll-mt-8" id="checking">
           <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">2. Checking domains</h2>
           <ol class="mt-3 list-decimal list-inside space-y-1">
             <li>On the <strong>Check</strong> page, type domains one per line or comma-separated.</li>
@@ -61,7 +61,7 @@
         </section>
 
         <!-- CSV format -->
-        <section id="csv-format">
+        <section class="scroll-mt-16 md:scroll-mt-8" id="csv-format">
           <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">3. Preparing your CSV file</h2>
           <p class="mt-3">Two formats are accepted:</p>
           <ul class="mt-2 list-disc list-inside space-y-1">
@@ -89,7 +89,7 @@ https://another-site.org,competitor</pre>
         </section>
 
         <!-- Tracking -->
-        <section id="tracking">
+        <section class="scroll-mt-16 md:scroll-mt-8" id="tracking">
           <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">4. Tracking progress</h2>
           <p class="mt-3">
             The results show a progress bar (<code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">processed / total</code>) and an overall status:
@@ -108,7 +108,7 @@ https://another-site.org,competitor</pre>
         </section>
 
         <!-- Results -->
-        <section id="results">
+        <section class="scroll-mt-16 md:scroll-mt-8" id="results">
           <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">5. Reading the results</h2>
           <p class="mt-3">Each row in the results table shows:</p>
           <ul class="mt-2 list-disc list-inside space-y-1">
@@ -137,7 +137,7 @@ https://another-site.org,competitor</pre>
         </section>
 
         <!-- Download -->
-        <section id="download">
+        <section class="scroll-mt-16 md:scroll-mt-8" id="download">
           <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">6. Downloading results as CSV</h2>
           <p class="mt-3">
             Once results start coming in, a <strong>Download CSV</strong> button appears above the table.
@@ -147,7 +147,7 @@ https://another-site.org,competitor</pre>
         </section>
 
         <!-- Directory -->
-      <section id="directory">
+      <section class="scroll-mt-16 md:scroll-mt-8" id="directory">
           <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">7. Domains directory</h2>
           <p class="mt-3">
             The <strong>Domains</strong> entry in the sidebar opens the directory: every domain the tool
@@ -155,10 +155,10 @@ https://another-site.org,competitor</pre>
             checked. Domains Ahrefs has no data for aren't listed.
           </p>
           <ul class="mt-3 list-disc list-inside space-y-1">
-            <li><strong>Search and filters</strong> — search by name, set a DR min–max, and pick TLDs. <strong>More filters</strong> adds checked-from and checked-to dates. Active filters show as removable chips, and <strong>Clear all</strong> resets them.</li>
+            <li><strong>Search and filters</strong> — search by name, set a DR min–max, and pick a TLD. <strong>More filters</strong> adds checked-from and checked-to dates. Active filters show as removable chips, and <strong>Clear all</strong> resets them.</li>
             <li><strong>Sorting</strong> — click the Domain, DR, Δ or Checked column header to sort by it; click again to reverse.</li>
             <li><strong>Δ</strong> — the DR change since that domain's previous check; <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">—</code> when it has only been checked once.</li>
-            <li><strong>Trend</strong> — a small line showing the last 12 checks.</li>
+            <li><strong>Trend</strong> — a small line showing the last 12 checks (on wider screens).</li>
             <li><strong>Page size</strong> — 20, 50 or 100 rows per page.</li>
             <li><strong>Sharing</strong> — the view (search, filters, sort, page) lives in the URL, so you can copy the link to share it.</li>
           </ul>
@@ -169,7 +169,7 @@ https://another-site.org,competitor</pre>
           <p class="mt-3">
             <strong>Export selected</strong> downloads a CSV of your selection with columns
             <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">domain, title, dr, dr_change, checked_at, page_url</code>. You can export up to
-            1,000 domains at a time and 10 exports per minute.
+            1,000 domains at a time and 10 exports per minute. Domains that no longer have a DR are skipped.
           </p>
           <p class="mt-3">
             Click a domain to open its page: current DR, DR history and a <strong>Re-check</strong> button.
@@ -178,7 +178,7 @@ https://another-site.org,competitor</pre>
         </section>
 
         <!-- Limits -->
-        <section id="limits">
+        <section class="scroll-mt-16 md:scroll-mt-8" id="limits">
           <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">8. Limits and things to know</h2>
           <ul class="mt-2 list-disc list-inside space-y-1">
             <li>Up to 100 typed domains or 1,000 CSV rows per check.</li>
@@ -191,7 +191,7 @@ https://another-site.org,competitor</pre>
         </section>
 
         <!-- FAQ -->
-        <section id="faq">
+        <section class="scroll-mt-16 md:scroll-mt-8" id="faq">
           <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">9. Troubleshooting / FAQ</h2>
 
           <div class="mt-4 space-y-5">
@@ -243,7 +243,7 @@ let observer: IntersectionObserver | null = null
 
 function linkClass(id: string) {
   return [
-    'block rounded transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+    'inline-block rounded transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
     activeId.value === id ? 'text-accent font-medium' : '',
   ]
 }
