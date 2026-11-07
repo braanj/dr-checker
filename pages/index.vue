@@ -90,7 +90,6 @@
 </template>
 
 <script setup lang="ts">
-import type { CheckResponse } from "~/server/utils/createCheck";
 import { TYPED_MAX } from "~/server/utils/checkInput";
 
 useHead({ title: "DR Checker: bulk Ahrefs Domain Rating checker" });
@@ -101,23 +100,15 @@ if (import.meta.server) {
   useResponseHeader("Cache-Control").value = "public, s-maxage=60, stale-while-revalidate=300";
 }
 
-function getStorage(): Storage | null {
-  try {
-    return localStorage;
-  } catch {
-    return null;
-  }
-}
-
 const recent = ref<RecentCheck[]>([]);
 const completed = ref(false);
 onMounted(() => {
-  recent.value = readRecent(getStorage());
+  recent.value = readRecent(recentStorage());
 });
 
 function clearRecent() {
   recent.value = [];
-  writeRecent(getStorage(), []);
+  writeRecent(recentStorage(), []);
 }
 
 const mode = ref<"typed" | "csv">("typed");
@@ -170,35 +161,11 @@ async function onSubmit() {
   infoMsg.value = "";
 
   try {
-    let body: FormData | { domains: string };
-    if (mode.value === "typed") {
-      body = { domains: domainsText.value };
-    } else {
-      body = new FormData();
-      body.append("file", file.value!);
-    }
-
-    const res = await $fetch<CheckResponse>("/api/check", { method: "POST", body });
-    track("check_submitted", { source: mode.value, rows: res.total });
-    noteSubmitted(res.batchId, res.total);
-
+    const res = await submitCheck(
+      mode.value === "typed" ? { source: "typed", domains: domainsText.value } : { source: "csv", file: file.value! },
+    );
     if (res.skipped) infoMsg.value = `Skipped ${res.skipped} entr${res.skipped === 1 ? "y" : "ies"} that weren't valid domains.`;
-
-    const entry: RecentCheck = {
-      batchId: res.batchId,
-      createdAt: new Date().toISOString(),
-      total: res.total,
-      label: recentLabel(
-        mode.value === "csv"
-          ? { csvName: file.value?.name, total: res.total }
-          : { typed: domainsText.value, total: res.total },
-      ),
-      inline: res.display === "inline",
-    };
-    const storage = getStorage();
-    const next = addRecent(readRecent(storage), entry);
-    writeRecent(storage, next);
-    recent.value = next;
+    recent.value = readRecent(recentStorage());
 
     if (res.display === "inline") {
       completed.value = false;

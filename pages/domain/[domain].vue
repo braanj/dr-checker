@@ -74,7 +74,6 @@
 
 <script setup lang="ts">
 import type { DomainView } from "~/utils/domainView";
-import type { CheckResponse } from "~/server/utils/createCheck";
 
 const route = useRoute();
 const config = useRuntimeConfig();
@@ -129,9 +128,7 @@ async function recheck() {
   checking.value = true;
   checkError.value = "";
   try {
-    const res = await $fetch<CheckResponse>("/api/check", { method: "POST", body: { domains: param.domain } });
-    track("check_submitted", { source: "typed", rows: res.total });
-    noteSubmitted(res.batchId, res.total);
+    const res = await submitCheck({ source: "typed", domains: param.domain });
     checkId.value = res.batchId;
     focusWhenPresent("check-results");
   } catch (e: any) {
