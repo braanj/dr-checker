@@ -2,8 +2,6 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { CACHE_TTL_DAYS } from "../supabase/functions/_shared/cache";
 
-// A shorter refresh interval would queue domains the worker then answers from
-// cache (no new reading); a longer one leaves directory DRs stale.
 function refreshIntervalDays(path: string): number {
   const sql = readFileSync(path, "utf8");
   const body = sql.match(/function public\.enqueue_dr_refresh[\s\S]*?\$\$;/)?.[0] ?? "";

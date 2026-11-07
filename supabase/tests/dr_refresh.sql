@@ -1,19 +1,19 @@
 -- Scenario test for the scheduled DR refresh (enqueue_dr_refresh). Safe to run
 -- against any project: it ALWAYS ends with an exception, so every row it writes is
 -- rolled back. Success is reported as the error text "SCENARIO OK"; anything else
--- ("SCENARIO FAIL: ...") names the first mismatch. Real domains that are due get
--- queued too, so assertions look at the scenario domains only.
+-- ("SCENARIO FAIL: ...") names the first mismatch. Real due domains get queued too,
+-- so assertions only look at the scenario-refresh-* domains.
 do $$
 declare
   v_queued integer;
   v_batch  uuid;
   v_other  uuid;
+  v_oldest timestamptz := least(now(), (select min(checked_at) from public.domains)) - interval '10 days';
 begin
-  -- older than any real reading, so p_limit picks them before production domains
   insert into public.domains (domain, dr, status, checked_at) values
-    ('scenario-refresh-oldest-1.test', 10, 'ok', now() - interval '4000 days'),
-    ('scenario-refresh-oldest-2.test', 10, 'ok', now() - interval '3999 days'),
-    ('scenario-refresh-oldest-3.test', 10, 'ok', now() - interval '3998 days'),
+    ('scenario-refresh-oldest-1.test', 10, 'ok', v_oldest - interval '2 days'),
+    ('scenario-refresh-oldest-2.test', 10, 'ok', v_oldest - interval '1 day'),
+    ('scenario-refresh-oldest-3.test', 10, 'ok', v_oldest),
     ('scenario-refresh-stale.test', 20, 'ok', now() - interval '31 days'),
     ('scenario-refresh-fresh.test', 30, 'ok', now() - interval '29 days'),
     ('scenario-refresh-nodata.test', null, 'no_data', now() - interval '40 days'),

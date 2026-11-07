@@ -1,14 +1,10 @@
--- Scheduled DR refresh. A directory DR is only re-checked when someone submits
--- the domain again, so most history stops growing; 540 of 613 directory domains
--- cross 30 days within a week of 2026-11-07. Every 15 minutes, 10 stale domains
--- go back through the url queue (process-queue does the Ahrefs call, retries and
--- history), which paces that wave at ~960 a day, far under the worker's capacity.
+-- Scheduled DR refresh. A directory DR was re-checked only when someone submitted
+-- the domain again, so most history stopped growing. Every 15 minutes, up to 10 ok
+-- domains whose reading is older than CACHE_TTL_DAYS go back through the url queue,
+-- and process-queue does the Ahrefs call, retries and history. A url row from the
+-- last day means a domain is queued, in flight or just failed, so it is retried
+-- daily rather than every run.
 
--- Re-queues up to p_limit directory domains whose ok DR has gone stale, as one
--- batch, so domain_history keeps growing without a user resubmitting them. The
--- interval matches CACHE_TTL_DAYS (tests/refreshCadence.test.ts). A url row from
--- the last day means the domain is queued, in flight, or just failed
--- transiently, so it is retried daily rather than every run.
 create or replace function public.enqueue_dr_refresh(p_limit integer default 10)
 returns integer
 language plpgsql
@@ -18,7 +14,6 @@ declare
   v_domains text[];
   v_batch   uuid;
 begin
-  -- overlapping runs would otherwise both see a domain as due and queue it twice
   perform pg_advisory_xact_lock(hashtext('enqueue_dr_refresh'));
 
   select array_agg(domain order by checked_at) into v_domains

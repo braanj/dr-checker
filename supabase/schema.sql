@@ -460,15 +460,11 @@ revoke execute on function public.kick_worker() from public, anon, authenticated
 revoke execute on function public.urls_kick_worker() from public, anon, authenticated;
 
 -- ----------------------------------------------------------------------------
--- Scheduled DR refresh: stale directory domains go back through the url queue
--- (cron 'dr-refresh' below), so process-queue keeps their history growing.
+-- Scheduled DR refresh (cron 'dr-refresh'): stale ok domains go back through the
+-- url queue. A url row from the last day means queued, in flight or just failed,
+-- so a domain is retried daily rather than every run.
 -- ----------------------------------------------------------------------------
 
--- Re-queues up to p_limit directory domains whose ok DR has gone stale, as one
--- batch, so domain_history keeps growing without a user resubmitting them. The
--- interval matches CACHE_TTL_DAYS (tests/refreshCadence.test.ts). A url row from
--- the last day means the domain is queued, in flight, or just failed
--- transiently, so it is retried daily rather than every run.
 create or replace function public.enqueue_dr_refresh(p_limit integer default 10)
 returns integer
 language plpgsql
@@ -478,7 +474,6 @@ declare
   v_domains text[];
   v_batch   uuid;
 begin
-  -- overlapping runs would otherwise both see a domain as due and queue it twice
   perform pg_advisory_xact_lock(hashtext('enqueue_dr_refresh'));
 
   select array_agg(domain order by checked_at) into v_domains
@@ -681,6 +676,5 @@ select cron.schedule('process-queue-backstop', '10 seconds', $$select public.kic
 select cron.unschedule(jobid) from cron.job where jobname = 'fetch-meta';
 select cron.schedule('fetch-meta', '* * * * *', $$select public.kick_meta_worker()$$);
 
--- scheduled DR refresh: 10 stale directory domains every 15 minutes
 select cron.unschedule(jobid) from cron.job where jobname = 'dr-refresh';
 select cron.schedule('dr-refresh', '*/15 * * * *', $$select public.enqueue_dr_refresh(10)$$);
