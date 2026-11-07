@@ -2,7 +2,7 @@
 // response, what to write to the url row, and what (if anything) to cache
 // in `domains`. Kept free of Deno/Supabase imports so Vitest can test it.
 
-import { NO_DATA_MESSAGE, type DomainCacheRow, type DomainStatus } from "../_shared/cache.ts";
+import { isFresh, NO_DATA_MESSAGE, type DomainCacheRow, type DomainStatus } from "../_shared/cache.ts";
 import type { TablesUpdate } from "../_shared/database.types.ts";
 
 export const MAX_ATTEMPTS = 3;
@@ -14,6 +14,21 @@ export const GAVE_UP_MESSAGE = "Gave up after repeated worker failures";
 // Ahrefs again, or it would be retried forever.
 export function isExhausted(attempts: number): boolean {
   return attempts > MAX_ATTEMPTS;
+}
+
+// One domain's claimed rows: a fresh cache entry answers all of them; otherwise
+// exhausted rows are finalized without a call and only the rest reach Ahrefs.
+export function planDomain<R extends { attempts: number }>(
+  rows: R[],
+  previous: DomainCacheRow | null,
+  now: Date,
+): { fromCache: R[]; gaveUp: R[]; live: R[] } {
+  if (previous && isFresh(previous, now)) return { fromCache: rows, gaveUp: [], live: [] };
+  return {
+    fromCache: [],
+    gaveUp: rows.filter((r) => isExhausted(r.attempts)),
+    live: rows.filter((r) => !isExhausted(r.attempts)),
+  };
 }
 
 export type AhrefsResult =
