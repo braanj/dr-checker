@@ -1,6 +1,6 @@
 <template>
   <div id="check-results" role="region" tabindex="-1" aria-label="Check results" class="focus:outline-none">
-    <div v-if="loading" class="mt-6 text-[#86868b]">Loading results…</div>
+    <div v-if="loading" class="mt-6 text-[#6e6e73]">Loading results…</div>
     <div v-else-if="error" class="mt-6 text-red-600">{{ error }}</div>
 
     <template v-else-if="batch">
@@ -11,7 +11,7 @@
           <span role="status">{{ statusLabel }}</span>
           <span>{{ batch.processed_urls }} / {{ batch.total_urls }}</span>
         </div>
-        <p v-if="batch.created_at" class="-mt-1 mb-2 text-xs text-[#86868b]">
+        <p v-if="batch.created_at" class="-mt-1 mb-2 text-xs text-[#6e6e73]">
           Started {{ new Date(batch.created_at).toLocaleString() }}
         </p>
         <div class="h-1.5 w-full overflow-hidden rounded-full bg-black/5">
@@ -29,7 +29,7 @@
           @click="download">
           Download CSV
         </button>
-        <p class="text-xs text-[#86868b]">Results are kept for {{ RESULTS_KEPT_DAYS }} days — download the CSV to keep them.</p>
+        <p class="text-xs text-[#6e6e73]">Results are kept for {{ RESULTS_KEPT_DAYS }} days — download the CSV to keep them.</p>
       </div>
 
       <div class="mt-8 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm">
@@ -56,7 +56,7 @@
                     class="ml-2 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium">
                     {{ sourceBadge(row)!.label }}
                   </span>
-                  <div v-if="row.checked_at && row.dr !== null" class="text-xs text-[#86868b]">
+                  <div v-if="row.checked_at && row.dr !== null" class="text-xs text-[#6e6e73]">
                     checked {{ checkedAgo(row.checked_at) }}
                   </div>
                 </td>

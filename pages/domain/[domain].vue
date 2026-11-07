@@ -15,13 +15,13 @@
         </div>
         <div class="ml-auto text-right">
           <div class="text-5xl font-semibold tracking-tight text-[#1d1d1f]">{{ formatDr(view.dr) }}</div>
-          <div class="text-xs text-[#86868b]">Domain Rating</div>
+          <div class="text-xs text-[#6e6e73]">Domain Rating</div>
         </div>
       </div>
 
       <div v-if="view.meta?.title || view.meta?.description"
         class="mt-6 rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
-        <p class="text-xs font-medium text-[#86868b]">From the site</p>
+        <p class="text-xs font-medium text-[#6e6e73]">From the site</p>
         <p v-if="view.meta?.title" class="mt-1 font-medium text-[#1d1d1f]">{{ view.meta.title }}</p>
         <p v-if="view.meta?.description" class="mt-1 text-sm text-[#424245]">{{ view.meta.description }}</p>
       </div>
