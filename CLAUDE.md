@@ -57,6 +57,7 @@ pg_cron (1 min) → kick_meta_worker() → Edge Function fetch-meta → safeFetc
 - **Claiming:** `claim_pending_urls()` takes `pending` rows whose `available_at` has passed, plus `processing` rows stuck for more than 2 minutes, using `FOR UPDATE SKIP LOCKED`. Each claim increments `attempts`.
 - **Retries:** decided by `process-queue/outcome.ts` (pure, tested). Transient failures back off at 30 s × attempts. After 3 attempts the row ends `done/stale` (if an old DR exists) or `error`. Transient failures are never cached; a DR of 0 is a success.
 - **Cache:** `domains` holds the latest result per domain. `ok` stays fresh for 30 days and `no_data` for 7 (`_shared/cache.ts`, imported by both Nitro and Deno).
+- **Scheduled refresh:** the `dr-refresh` cron runs `enqueue_dr_refresh(10)` every 15 min. A domain is due when it is `ok`, `checked_at` is older than 30 days, and it has no `urls` row from the last day (queued, in flight, or just failed, so it retries daily). The predicate lives only in that function. The 30 days must equal `CACHE_TTL_DAYS` (`tests/refreshCadence.test.ts`).
 - **Batch status** is owned by Postgres:
   - `bump_batch_progress()` recounts on every url status change and ends a batch `completed`, or `failed` if every row errored.
   - `claim_pending_urls()` flips `pending` → `processing` on the first claim.

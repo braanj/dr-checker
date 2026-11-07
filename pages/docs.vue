@@ -186,7 +186,7 @@ https://another-site.org,competitor</pre>
             <li>Up to 10 checks per minute from the same network, and 10,000 result rows per day.</li>
             <li>Up to 2,000 new domains per hour from the same network (domains already in the directory don't count).</li>
             <li>Results links are kept for 7 days.</li>
-            <li>A DR is reused for 30 days before it's checked again.</li>
+            <li>A DR is reused for 30 days before it's checked again. Directory domains are also re-checked automatically about every 30 days, so their history keeps growing.</li>
             <li>DR is per host: <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">blog.example.com</code> and <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">example.com</code> are separate entries.</li>
             <li>Everything you check (with a DR) becomes visible in the public directory.</li>
             <li>Processing speed depends on Ahrefs' rate limits — large files take longer; keep the results link and check back.</li>
