@@ -22,7 +22,14 @@ describe("classifyAhrefsResponse", () => {
 
   it("treats a 200 without a numeric DR as no_data", () => {
     expect(classifyAhrefsResponse(200, {})).toEqual({ kind: "no_data" });
-    expect(classifyAhrefsResponse(200, null)).toEqual({ kind: "no_data" });
+  });
+
+  // index.ts passes null when a 200 body isn't JSON (HTML error page, cut-off reply). Caching
+  // that as no_data would overwrite a domain's good DR and drop it from the directory.
+  it("treats an unreadable 200 body as transient, so it is retried and never cached", () => {
+    const result = classifyAhrefsResponse(200, null);
+    expect(result.kind).toBe("transient");
+    expect(cacheWriteFor(result)).toBeNull();
   });
 
   it("treats any non-200 as transient", () => {
