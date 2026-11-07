@@ -156,8 +156,8 @@ https://another-site.org,competitor</pre>
             checked. Domains Ahrefs has no data for aren't listed.
           </p>
           <ul class="mt-3 list-disc list-inside space-y-1">
-            <li><strong>Search and filters</strong> — search by name, set a DR min–max, and pick a TLD. <strong>More filters</strong> adds checked-from and checked-to dates. Active filters show as removable chips, and <strong>Clear all</strong> resets them.</li>
-            <li><strong>Sorting</strong> — click the Domain, DR, Δ or Checked column header to sort by it; click again to reverse.</li>
+            <li><strong>Search and filters</strong> — search by name, set a DR min–max, and pick a TLD. <strong>More filters</strong> adds checked-from and checked-to dates. Active filters show as removable chips, and <strong>Clear all</strong> resets them. If a search for a domain name finds nothing, you can check that domain right from the empty list.</li>
+            <li><strong>Sorting</strong> — click the Domain, DR, Δ or Checked column header to sort by it; click again to reverse. On a phone, use the Sort by menu above the list.</li>
             <li><strong>Δ</strong> — the DR change since that domain's previous check; <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">—</code> when it has only been checked once.</li>
             <li><strong>Trend</strong> — a small line showing the last 12 checks (on wider screens).</li>
             <li><strong>Page size</strong> — 20, 50 or 100 rows per page.</li>
