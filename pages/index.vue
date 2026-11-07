@@ -95,6 +95,12 @@ import { TYPED_MAX } from "~/server/utils/checkInput";
 
 useHead({ title: "DR Checker: bulk Ahrefs Domain Rating checker" });
 
+// Nothing per-visitor renders on the server: recent checks are <ClientOnly>
+// and inline results load in the browser.
+if (import.meta.server) {
+  useResponseHeader("Cache-Control").value = "public, s-maxage=60, stale-while-revalidate=300";
+}
+
 function getStorage(): Storage | null {
   try {
     return localStorage;
