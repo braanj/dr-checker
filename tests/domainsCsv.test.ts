@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   attachmentHeader,
   buildDomainsCsv,
+  buildResultsCsv,
   csvCell,
   exportFilename,
   ExportInputError,
@@ -86,5 +87,24 @@ describe("attachmentHeader", () => {
 
   it("leaves a plain ASCII name readable", () => {
     expect(send("dr-domains-2026-11-07.csv")).toContain('filename="dr-domains-2026-11-07.csv"');
+  });
+});
+
+describe("buildResultsCsv", () => {
+  const row = { original_url: "a.com", domain: "a.com", dr: 40, status: "done", source: "cache", checked_at: "2026-11-07T00:00:00Z" };
+
+  // "=1+1.com" passes normalizeDomain, so a user can submit it and download it back
+  it("guards formula triggers in user-supplied cells, like the directory export", () => {
+    const csv = buildResultsCsv([{ ...row, original_url: "=1+1.com", domain: "=1+1.com" }]);
+    const cells = csv.split(/\r?\n/)[1].split(",");
+    expect(cells[0]).toBe("'=1+1.com");
+    expect(cells[1]).toBe("'=1+1.com");
+  });
+
+  it("keeps the header and plain values", () => {
+    expect(buildResultsCsv([row]).split(/\r?\n/)).toEqual([
+      "url,domain,domain_rating,status,source,checked_at",
+      "a.com,a.com,40,done,cache,2026-11-07T00:00:00Z",
+    ]);
   });
 });
