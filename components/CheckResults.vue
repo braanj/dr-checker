@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div id="check-results" role="region" tabindex="-1" aria-label="Check results" class="focus:outline-none">
     <div v-if="loading" class="mt-6 text-[#86868b]">Loading results…</div>
     <div v-else-if="error" class="mt-6 text-red-600">{{ error }}</div>
 
@@ -8,7 +8,7 @@
 
       <div class="mt-6 rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
         <div class="flex justify-between text-sm text-[#6e6e73] mb-2">
-          <span>{{ statusLabel }}</span>
+          <span role="status">{{ statusLabel }}</span>
           <span>{{ batch.processed_urls }} / {{ batch.total_urls }}</span>
         </div>
         <p v-if="batch.created_at" class="-mt-1 mb-2 text-xs text-[#86868b]">

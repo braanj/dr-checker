@@ -17,12 +17,12 @@
           class="w-full rounded-2xl border border-black/10 bg-white p-4 text-[15px] text-[#1d1d1f] shadow-sm transition-colors focus:border-accent/50 focus:outline-none" />
 
         <label v-else
-          class="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-black/15 bg-white p-12 text-center shadow-sm transition-colors cursor-pointer hover:border-accent/50 hover:bg-accent-light/40">
+          class="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-black/15 bg-white p-12 text-center shadow-sm transition-colors cursor-pointer hover:border-accent/50 hover:bg-accent-light/40 focus-within:ring-2 focus-within:ring-accent">
           <span class="text-[15px] font-medium text-[#1d1d1f]">
             {{ file ? file.name : "Click to choose a CSV file" }}
           </span>
           <span class="text-xs text-[#86868b]">Max 1,000 URLs</span>
-          <input type="file" accept=".csv,text/csv" class="hidden" @change="onFileChange" />
+          <input type="file" accept=".csv,text/csv" class="sr-only" @change="onFileChange" />
         </label>
 
         <button type="submit" :disabled="!canSubmit || submitting"
@@ -37,8 +37,8 @@
           <span class="text-xs text-[#86868b]">Checked domains are added to the public directory.</span>
         </div>
 
-        <p v-if="errorMsg" class="text-sm text-red-600">{{ errorMsg }}</p>
-        <p v-if="infoMsg" class="text-sm text-[#6e6e73]">{{ infoMsg }}</p>
+        <p v-if="errorMsg" role="alert" class="text-sm text-red-600">{{ errorMsg }}</p>
+        <p v-if="infoMsg" role="status" class="text-sm text-[#6e6e73]">{{ infoMsg }}</p>
       </form>
 
       <!-- Inline results for small typed checks -->
@@ -175,6 +175,7 @@ async function onSubmit() {
     if (res.display === "inline") {
       completed.value = false;
       await router.replace({ query: { check: res.batchId } });
+      focusWhenPresent("check-results");
     } else {
       await navigateTo(`/results/${res.batchId}`);
     }
