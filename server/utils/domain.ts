@@ -16,7 +16,8 @@ export function normalizeDomain(input: string): string | null {
 
   try {
     const url = new URL(value);
-    let host = url.hostname.toLowerCase();
+    // "example.com." is the same host as "example.com"
+    let host = url.hostname.toLowerCase().replace(/\.+$/, "");
     if (host.startsWith("www.")) host = host.slice(4);
     // "localhost", bare words etc. can't have a DR — require at least one dot.
     return host.includes(".") ? host : null;

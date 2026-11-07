@@ -10,7 +10,9 @@ export function shouldPoll(s: {
   channelFailed: boolean;
   lastBroadcastAt: number;
   now: number;
+  /** the server answered 404: the batch is gone (bad link, or past the 7-day retention) */
+  notFound?: boolean;
 }): boolean {
-  if (s.status === "completed" || s.status === "failed") return false;
+  if (s.notFound || s.status === "completed" || s.status === "failed") return false;
   return s.channelFailed || s.now - s.lastBroadcastAt >= POLL_SILENCE_MS;
 }

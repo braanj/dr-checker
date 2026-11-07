@@ -32,8 +32,6 @@ export async function createCheck(
   event: H3Event,
 ): Promise<CheckResponse> {
   const admin = supabaseAdmin();
-  // every row is stored, cached or not, so all of them spend the IP's storage budget
-  await assertRateLimit(event, "stored", opts.rows.length);
 
   const uniqueDomains = [...new Set(opts.rows.map((r) => r.domain))];
   const cache: DomainCacheRow[] = [];
@@ -54,6 +52,9 @@ export async function createCheck(
   // only uncached domains reach Ahrefs, once per domain, so only they spend the IP's queue budget
   const queuedDomains = new Set(planned.filter((p) => p.status === "pending").map((p) => p.domain)).size;
   if (queuedDomains > 0) await assertRateLimit(event, "rows", queuedDomains);
+  // every row is stored, cached or not, so all of them spend the IP's storage budget.
+  // Charged last, so a check the hourly budget rejects spends none of it.
+  await assertRateLimit(event, "stored", total);
 
   const { data: batch, error: batchError } = await admin
     .from("batches")

@@ -19,6 +19,10 @@ describe("shouldPoll", () => {
     expect(shouldPoll({ ...base, status: "pending", now: base.now + POLL_SILENCE_MS })).toBe(true);
   });
 
+  it("never polls a batch the server says no longer exists (404, e.g. past the 7-day retention)", () => {
+    expect(shouldPoll({ ...base, status: undefined, notFound: true, channelFailed: true, now: base.now + 60_000 })).toBe(false);
+  });
+
   it("polls while the batch status is not known yet only after the silence", () => {
     expect(shouldPoll({ ...base, status: undefined, now: base.now + POLL_SILENCE_MS })).toBe(true);
   });
