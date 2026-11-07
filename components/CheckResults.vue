@@ -134,7 +134,7 @@ function sourceBadge(row: UrlRow) {
     case "cache":
       return { label: "cached", class: "bg-black/5 text-[#6e6e73]", title: "From the directory (checked in the last 30 days)" };
     case "stale":
-      return { label: "stale", class: "bg-amber-100 text-amber-800", title: "Ahrefs was unavailable; showing the last known DR" };
+      return { label: "stale", class: "bg-amber-100 text-amber-800", title: "No new DR from Ahrefs; showing the last known one" };
     default:
       return null;
   }

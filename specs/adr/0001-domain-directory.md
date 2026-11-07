@@ -76,6 +76,7 @@ Order matters because `user_id` FKs are `on delete cascade`:
 - The worker now has retry/backoff and stuck-row recovery, which the previous design claimed but did not implement.
 - Users checking private/client domains publish them to the directory (stated in UI copy).
 - Ahrefs' behavior for unknown domains is unverified; if it returns DR 0 rather than no DR, `no_data` will rarely occur.
+  - *Update 2026-11-07:* verified in production data. Unknown domains get DR 0 and malformed input gets HTTP 400; no `no_data` answer has been recorded since 2026-08-15. See ADR 0003 for why `no_data` still never overwrites a good DR.
 
 ## Alternatives rejected
 

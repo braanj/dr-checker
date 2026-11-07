@@ -97,7 +97,7 @@ async function processBatch(rows: ClaimedRow[], pace: () => Promise<void>) {
     const result = await fetchDomainRating(domain);
     const checkedAt = new Date();
 
-    const cacheWrite = cacheWriteFor(result);
+    const cacheWrite = cacheWriteFor(result, previous);
     if (cacheWrite) {
       writes.push(
         supabase

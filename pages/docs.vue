@@ -127,7 +127,7 @@ https://another-site.org,competitor</pre>
           <ul class="mt-2 space-y-1.5">
             <li><span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-accent-light text-accent">live</span> — fetched from Ahrefs just now</li>
             <li><span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-black/5 text-[#6e6e73]">cached</span> — from the directory, checked in the last 30 days</li>
-            <li><span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-amber-100 text-amber-800">stale</span> — Ahrefs was unavailable after 3 tries, so this is the last known DR</li>
+            <li><span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-amber-100 text-amber-800">stale</span> — Ahrefs had no new DR (it was unavailable after 3 tries, or returned no data), so this is the last known DR</li>
             <li><span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-amber-100 text-amber-800">retrying</span> — the last try failed temporarily (e.g. Ahrefs rate limit); it is retried automatically, up to 3 attempts — hover it to see the error</li>
           </ul>
           <p class="mt-3">
