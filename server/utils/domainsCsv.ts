@@ -56,6 +56,25 @@ export function buildDomainsCsv(rows: ExportRow[]): string {
   return lines.join("\r\n");
 }
 
+export interface ResultsCsvRow {
+  original_url: string;
+  domain: string;
+  dr: number | null;
+  status: string;
+  source: string | null;
+  checked_at: string | null;
+}
+
+// One check's results, as downloaded from the results page.
+export function buildResultsCsv(rows: ResultsCsvRow[]): string {
+  const header = "url,domain,domain_rating,status,source,checked_at";
+  const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  const lines = rows.map((r) =>
+    [escape(r.original_url), escape(r.domain), r.dr ?? "", r.status, r.source ?? "", r.checked_at ?? ""].join(","),
+  );
+  return [header, ...lines].join("\n");
+}
+
 export function exportFilename(now: Date): string {
   return `dr-domains-${now.toISOString().slice(0, 10)}.csv`;
 }
