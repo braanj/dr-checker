@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  attachmentHeader,
   buildDomainsCsv,
   csvCell,
   exportFilename,
@@ -65,5 +66,25 @@ describe("buildDomainsCsv", () => {
 describe("exportFilename", () => {
   it("uses the UTC date", () => {
     expect(exportFilename(new Date("2026-10-26T23:30:00Z"))).toBe("dr-domains-2026-10-26.csv");
+  });
+});
+
+describe("attachmentHeader", () => {
+  // `Headers` applies the same ByteString rule Node's setHeader enforces in production
+  const send = (name: string) => new Headers({ "content-disposition": attachmentHeader(name) }).get("content-disposition");
+
+  it("is a valid header for non-ASCII and quote characters", () => {
+    expect(() => send("日本-dr-results.csv")).not.toThrow();
+    expect(() => send('a"b\\c.csv')).not.toThrow();
+  });
+
+  it("keeps the original name for clients that read filename*", () => {
+    const header = send("日本 'x'.csv")!;
+    const encoded = header.match(/filename\*=UTF-8''(.+)$/)![1];
+    expect(decodeURIComponent(encoded)).toBe("日本 'x'.csv");
+  });
+
+  it("leaves a plain ASCII name readable", () => {
+    expect(send("dr-domains-2026-11-07.csv")).toContain('filename="dr-domains-2026-11-07.csv"');
   });
 });
