@@ -1,0 +1,9 @@
+{
+  "name": "verify-dr-checker-driver",
+  "private": true,
+  "type": "module",
+  "description": "Browser driver for the verify-dr-checker skill. Kept out of the app's package.json on purpose.",
+  "dependencies": {
+    "playwright": "1.65.0"
+  }
+}
