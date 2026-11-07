@@ -32,6 +32,7 @@ The scripts are in `package.json`. Facts the files don't tell you:
 - **SQL scenario tests** (`supabase/tests/*.sql`) are one `do` block that always ends by raising an exception, so everything rolls back. Success is the error text `SCENARIO OK`.
 - **Read-only Management API queries** run as a role that cannot execute functions revoked from `public` (e.g. `meta_due`). Query the tables directly instead.
 - **Health check** (should return no rows): `select b.id from public.batches b join public.urls u on u.batch_id = b.id group by b.id having b.processed_urls <> count(*) filter (where u.status in ('done','error'));`
+- **Size check** (free tier is 0.5 GB; app data is a few MB, so anything large is a log or a leak): `select n.nspname||'.'||c.relname rel, pg_size_pretty(pg_total_relation_size(c.oid)) size from pg_class c join pg_namespace n on n.oid = c.relnamespace where c.relkind in ('r','m') order by pg_total_relation_size(c.oid) desc limit 5;` Run both after each release.
 
 ## Architecture
 

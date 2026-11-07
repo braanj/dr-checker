@@ -1,5 +1,7 @@
 // sitemap.xml / robots.txt builders (ADR 0003). PostgREST caps a select at
 // max_rows (1,000), so domains are read page by page.
+// shortcut: one sitemap file, valid up to 50,000 URLs (and Netlify's ~6 MB response cap,
+// reached around the same size); split into a sitemap index when the directory nears that.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../supabase/functions/_shared/database.types";
