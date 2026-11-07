@@ -7,7 +7,7 @@
         <img v-if="view.meta?.favicon_url" :src="view.meta.favicon_url" alt="" width="40" height="40"
           class="h-10 w-10 shrink-0 rounded-lg" />
         <div class="min-w-0">
-          <h1 class="break-all text-3xl font-semibold tracking-tight text-[#1d1d1f]">{{ view.domain }}</h1>
+          <h1 class="[overflow-wrap:anywhere] text-3xl font-semibold tracking-tight text-[#1d1d1f]">{{ view.domain }}</h1>
           <p class="text-sm text-[#6e6e73]">
             checked
             <ClientOnly>{{ checkedAgo(view.checked_at) }}<template #fallback>on {{ isoDate(view.checked_at) }}</template></ClientOnly>
@@ -51,13 +51,13 @@
     </template>
 
     <div v-else-if="param" class="mt-6">
-      <h1 class="break-all text-3xl font-semibold tracking-tight text-[#1d1d1f]">
+      <h1 class="[overflow-wrap:anywhere] text-3xl font-semibold tracking-tight text-[#1d1d1f]">
         We haven't checked {{ domainName }} yet
       </h1>
       <p class="mt-2 text-[#6e6e73]">Check it now. The result is added to the public directory.</p>
     </div>
     <div v-else class="mt-6">
-      <h1 class="break-all text-3xl font-semibold tracking-tight text-[#1d1d1f]">That isn't a valid domain</h1>
+      <h1 class="[overflow-wrap:anywhere] text-3xl font-semibold tracking-tight text-[#1d1d1f]">That isn't a valid domain</h1>
       <p class="mt-2 text-[#6e6e73]">Domain pages look like <code>/domain/example.com</code>.</p>
     </div>
 
