@@ -81,3 +81,25 @@ describe("quote-aware tags and MIME normalisation", () => {
     expect(normalizeMime("")).toBe("");
   });
 });
+
+describe("extractMeta on hostile input", () => {
+  // a crafted <head> full of tags that never close used to take time quadratic in
+  // its size (~100 s at the 512 KB cap); a linear scan stays in milliseconds
+  for (const unit of ["<title>", "<meta ", "<link ", '<meta "']) {
+    it(`stays fast on 512 KB of unclosed ${JSON.stringify(unit)}`, () => {
+      const html = "<head>" + unit.repeat(Math.floor((512 * 1024) / unit.length));
+      const started = performance.now();
+      expect(extractMeta(html, PAGE)).toMatchObject({ title: null, description: null });
+      expect(performance.now() - started).toBeLessThan(500);
+    });
+  }
+
+  it("still reads tags that come before a broken one", () => {
+    const html = `<head><title>T</title><meta name="description" content="D"><link rel="icon" href="/i.png"><meta content="x`;
+    expect(extractMeta(html, PAGE)).toMatchObject({
+      title: "T",
+      description: "D",
+      faviconCandidates: ["https://www.example.com/i.png", "https://www.example.com/favicon.ico"],
+    });
+  });
+});
