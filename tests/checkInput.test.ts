@@ -24,6 +24,12 @@ describe("normalizeDomain", () => {
     expect(normalizeDomain("blog.example.com")).toBe("blog.example.com");
   });
 
+  it("drops a trailing dot, so example.com. is the same domain as example.com", () => {
+    expect(normalizeDomain("example.com.")).toBe("example.com");
+    expect(normalizeDomain("https://www.example.com./x")).toBe("example.com");
+    expect(normalizeDomain("localhost.")).toBeNull();
+  });
+
   it("rejects hosts without a dot and unparseable input", () => {
     expect(normalizeDomain("localhost")).toBeNull();
     expect(normalizeDomain("not a domain")).toBeNull();
