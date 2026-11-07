@@ -34,10 +34,10 @@
 
       <div class="mt-8 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm">
         <div class="overflow-x-auto">
-          <table class="w-full text-sm border-collapse" :class="{ 'min-w-[560px]': showUrl }">
+          <table class="w-full text-sm border-collapse" :class="{ 'sm:min-w-[560px]': showUrl }">
             <thead>
               <tr class="text-left text-[#6e6e73] border-b border-black/5">
-                <th v-if="showUrl" class="py-3 px-4 font-medium">URL</th>
+                <th v-if="showUrl" class="hidden py-3 px-4 font-medium sm:table-cell">URL</th>
                 <th class="py-3 px-4 font-medium">Domain</th>
                 <th class="py-3 px-4 font-medium">DR</th>
                 <th class="py-3 px-4 font-medium">Status</th>
@@ -46,7 +46,7 @@
             <tbody>
               <tr v-for="row in sortedUrls" :key="row.id"
                 class="border-b border-black/5 last:border-0 transition-colors hover:bg-black/[0.02]">
-                <td v-if="showUrl" class="py-2.5 px-4 truncate max-w-[220px]" :title="row.original_url">{{ row.original_url }}</td>
+                <td v-if="showUrl" class="hidden py-2.5 px-4 truncate max-w-[220px] sm:table-cell" :title="row.original_url">{{ row.original_url }}</td>
                 <td class="py-2.5 px-4">
                   <NuxtLink :to="domainPath(row.domain)"
                     class="rounded text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">{{ row.domain }}</NuxtLink>
@@ -100,7 +100,8 @@ const sortedUrls = computed(() =>
   [...urls.value].sort((a, b) => a.original_url.localeCompare(b.original_url)),
 );
 
-// Typed bare domains repeat themselves in the URL column; only show it when it adds something.
+// Typed bare domains repeat themselves in the URL column; only show it when it adds
+// something, and never on phones, where it would push DR and Status off-screen.
 const showUrl = computed(() => urls.value.some((u) => u.original_url !== u.domain));
 
 const statusLabel = computed(() => {
