@@ -122,3 +122,27 @@ export function nextSort(s: DomainsState, col: SortBy): Pick<DomainsState, "sort
   if (s.sortBy === col) return { sortBy: col, sortDir: s.sortDir === "asc" ? "desc" : "asc", page: 1 };
   return { sortBy: col, sortDir: col === "domain" ? "asc" : "desc", page: 1 };
 }
+
+export interface SortOption {
+  label: string;
+  sortBy: SortBy;
+  sortDir: DomainsState["sortDir"];
+}
+
+// Phones have no sortable column headers, so they sort from this list. It
+// covers every sortBy × sortDir pair, so any URL state has a matching option.
+export const SORT_OPTIONS: readonly SortOption[] = [
+  { label: "Recently checked", sortBy: "checked_at", sortDir: "desc" },
+  { label: "Oldest checked", sortBy: "checked_at", sortDir: "asc" },
+  { label: "Highest DR", sortBy: "dr", sortDir: "desc" },
+  { label: "Lowest DR", sortBy: "dr", sortDir: "asc" },
+  { label: "Biggest gain", sortBy: "dr_change", sortDir: "desc" },
+  { label: "Biggest drop", sortBy: "dr_change", sortDir: "asc" },
+  { label: "Domain A–Z", sortBy: "domain", sortDir: "asc" },
+  { label: "Domain Z–A", sortBy: "domain", sortDir: "desc" },
+];
+
+export function sortOptionIndex(s: Pick<DomainsState, "sortBy" | "sortDir">): number {
+  const i = SORT_OPTIONS.findIndex((o) => o.sortBy === s.sortBy && o.sortDir === s.sortDir);
+  return i === -1 ? 0 : i;
+}
