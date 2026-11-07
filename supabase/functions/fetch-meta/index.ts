@@ -9,7 +9,7 @@ import type { Database } from "../_shared/database.types.ts";
 import { checkWorkerSecret } from "../_shared/auth.ts";
 import { extractMeta, iconExtension, normalizeMime } from "./parseHead.ts";
 import { combineLookups, FetchBlocked, fetchSite, META_LIMITS, safeFetch, type NetDeps } from "./safeFetch.ts";
-import { metaErrorFields, metaSuccessFields, staleFaviconPath } from "./metaOutcome.ts";
+import { keptFaviconPath, metaErrorFields, metaSuccessFields, staleFaviconPath, type FaviconOutcome } from "./metaOutcome.ts";
 
 const supabase = createClient<Database>(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false },
@@ -30,9 +30,13 @@ const net: NetDeps = {
   fetch: (url, init) => fetch(url, init),
 };
 
-async function storeFavicon(domain: string, candidates: string[], signal: AbortSignal): Promise<string | null> {
+async function storeFavicon(domain: string, candidates: string[], signal: AbortSignal): Promise<FaviconOutcome> {
+  let gone = true;
   for (const href of candidates.slice(0, META_LIMITS.iconCandidates)) {
-    if (signal.aborted) break;
+    if (signal.aborted) {
+      gone = false;
+      break;
+    }
     try {
       const icon = await safeFetch(href, net, {
         accept: "image/*",
@@ -41,18 +45,20 @@ async function storeFavicon(domain: string, candidates: string[], signal: AbortS
         signal,
       });
       const ext = iconExtension(icon.contentType);
+      if (icon.status >= 500) gone = false;
       if (icon.status >= 400 || !ext || icon.body.length === 0) continue;
       const path = `${domain}.${ext}`;
       const { error } = await supabase.storage
         .from("favicons")
         .upload(path, icon.body, { upsert: true, contentType: normalizeMime(icon.contentType) });
-      if (!error) return path;
+      if (!error) return { path, gone: false };
+      gone = false;
       console.error("favicon upload failed", domain, error.message);
     } catch {
-      // try the next candidate
+      gone = false; // timeout, network error or too large: try the next candidate
     }
   }
-  return null;
+  return { path: null, gone };
 }
 
 async function processDomain(domain: string): Promise<"ok" | "error"> {
@@ -65,7 +71,10 @@ async function processDomain(domain: string): Promise<"ok" | "error"> {
     }
     const meta = extractMeta(new TextDecoder().decode(page.body), page.url);
     const { data: previous } = await supabase.from("domain_meta").select("favicon_path").eq("domain", domain).maybeSingle();
-    const favicon_path = await storeFavicon(domain, meta.faviconCandidates, deadline);
+    const favicon_path = keptFaviconPath(
+      previous?.favicon_path ?? null,
+      await storeFavicon(domain, meta.faviconCandidates, deadline),
+    );
     const { error: saveError } = await supabase
       .from("domain_meta")
       .update(metaSuccessFields(meta, favicon_path, new Date().toISOString()))

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { metaErrorFields, metaSuccessFields, staleFaviconPath } from "../supabase/functions/fetch-meta/metaOutcome";
+import { keptFaviconPath, metaErrorFields, metaSuccessFields, staleFaviconPath } from "../supabase/functions/fetch-meta/metaOutcome";
 
 const NOW = "2026-10-10T12:00:00.000Z";
 
@@ -38,5 +38,18 @@ describe("staleFaviconPath", () => {
     expect(staleFaviconPath("x.com.png", null)).toBe("x.com.png");
     expect(staleFaviconPath("x.com.png", "x.com.png")).toBeNull();
     expect(staleFaviconPath(null, "x.com.ico")).toBeNull();
+  });
+});
+
+describe("keptFaviconPath", () => {
+  it("uses a newly stored icon", () => {
+    expect(keptFaviconPath("x.com.png", { path: "x.com.ico", gone: false })).toBe("x.com.ico");
+  });
+  it("drops the icon only when the site really has none any more", () => {
+    expect(keptFaviconPath("x.com.png", { path: null, gone: true })).toBeNull();
+  });
+  it("keeps the previous icon when fetching it failed (timeout, 5xx, upload error)", () => {
+    expect(keptFaviconPath("x.com.png", { path: null, gone: false })).toBe("x.com.png");
+    expect(staleFaviconPath("x.com.png", keptFaviconPath("x.com.png", { path: null, gone: false }))).toBeNull();
   });
 });

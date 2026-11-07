@@ -36,3 +36,15 @@ export function metaErrorFields(reason: string, nowIso: string) {
 export function staleFaviconPath(previous: string | null, next: string | null): string | null {
   return previous && previous !== next ? previous : null;
 }
+
+// What storing a favicon produced: a new path, or none. `gone` is true only when
+// every candidate got a real answer with no usable icon (4xx, not an image, empty);
+// a timeout, network error, 5xx or upload failure is not proof the icon is gone.
+export type FaviconOutcome = { path: string | null; gone: boolean };
+
+// The favicon path to save after a successful page refresh: a flaky icon fetch
+// keeps the last good icon instead of deleting it for 30 days.
+export function keptFaviconPath(previous: string | null, outcome: FaviconOutcome): string | null {
+  if (outcome.path) return outcome.path;
+  return outcome.gone ? null : previous;
+}
