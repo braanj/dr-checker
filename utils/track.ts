@@ -3,6 +3,7 @@
 
 export interface Events {
   check_submitted: { source: "typed" | "csv"; rows: number };
+  domain_page_check: { rows: number };
   check_completed: { status: "completed" | "failed"; rows: number; seconds: number };
   results_csv_download: { rows: number };
   directory_export: { count: number };
