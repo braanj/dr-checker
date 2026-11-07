@@ -41,10 +41,17 @@ describe("assertRateLimit", () => {
     expect(headers["Retry-After"]).toBeUndefined();
   });
 
-  it("sends p_kind 'check' by default", async () => {
+  it("sends one 'check' request per minute window by default", async () => {
     allowed = true;
     await assertRateLimit(event);
-    expect(lastArgs).toEqual({ p_ip: "203.0.113.7", p_limit: 10, p_kind: "check" });
+    expect(lastArgs).toEqual({ p_ip: "203.0.113.7", p_limit: 10, p_kind: "check", p_weight: 1, p_window_seconds: 60 });
+  });
+
+  it("charges queued domains against an hourly budget and says when to retry", async () => {
+    allowed = false;
+    await expect(assertRateLimit(event, "rows", 250)).rejects.toMatchObject({ statusCode: 429 });
+    expect(lastArgs).toMatchObject({ p_kind: "rows", p_weight: 250, p_limit: 2000, p_window_seconds: 3600 });
+    expect(headers["Retry-After"]).toBe("3600");
   });
 
   it("uses the export bucket and message", async () => {
