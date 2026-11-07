@@ -70,7 +70,7 @@ describe("createCheck", () => {
   it("charges the IP's queue budget for uncached domains only, before inserting anything", async () => {
     cacheRows = [{ domain: "a.com", dr: 40, status: "ok", checked_at: new Date().toISOString() }];
     await createCheck(input(twoRows), event);
-    expect(calls).toEqual(["charge:stored:2", "charge:rows:1", "insert:batches", "insert:urls"]);
+    expect(calls).toEqual(["charge:rows:1", "charge:stored:2", "insert:batches", "insert:urls"]);
   });
 
   it("charges the queue budget once per distinct uncached domain, since duplicates share one Ahrefs call", async () => {
@@ -86,10 +86,16 @@ describe("createCheck", () => {
     expect(calls.filter((c) => c.startsWith("charge:"))).toEqual(["charge:stored:1"]);
   });
 
-  it("charges every stored row, cached duplicates included, before reading the cache", async () => {
-    overBudget = true;
+  it("charges every stored row, cached duplicates included", async () => {
+    cacheRows = [{ domain: "a.com", dr: 40, status: "ok", checked_at: new Date().toISOString() }];
     const dupes = Array.from({ length: 3 }, () => ({ original_url: "a.com", domain: "a.com" }));
-    await expect(createCheck(input(dupes), event)).rejects.toThrow("Too many new domains");
-    expect(calls).toEqual(["charge:stored:3"]);
+    await createCheck(input(dupes), event);
+    expect(calls).toEqual(["charge:stored:3", "insert:batches", "insert:urls"]);
+  });
+
+  it("spends no storage budget when the hourly queue budget rejects the check", async () => {
+    overBudget = true;
+    await expect(createCheck(input(twoRows), event)).rejects.toThrow("Too many new domains");
+    expect(calls).toEqual(["charge:rows:2"]);
   });
 });
