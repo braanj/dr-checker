@@ -30,7 +30,7 @@ describe("classifyAhrefsResponse", () => {
   it("treats an unreadable 200 body as transient, so it is retried and never cached", () => {
     const result = classifyAhrefsResponse(200, null);
     expect(result.kind).toBe("transient");
-    expect(cacheWriteFor(result)).toBeNull();
+    expect(cacheWriteFor(result, null)).toBeNull();
   });
 
   it("treats any non-200 as transient", () => {
@@ -41,9 +41,14 @@ describe("classifyAhrefsResponse", () => {
 
 describe("cacheWriteFor", () => {
   it("caches ok and no_data, never transient", () => {
-    expect(cacheWriteFor({ kind: "ok", dr: 5 })).toEqual({ dr: 5, status: "ok" });
-    expect(cacheWriteFor({ kind: "no_data" })).toEqual({ dr: null, status: "no_data" });
-    expect(cacheWriteFor(transient)).toBeNull();
+    expect(cacheWriteFor({ kind: "ok", dr: 5 }, null)).toEqual({ dr: 5, status: "ok" });
+    expect(cacheWriteFor({ kind: "no_data" }, null)).toEqual({ dr: null, status: "no_data" });
+    expect(cacheWriteFor(transient, null)).toBeNull();
+  });
+
+  it("never lets no_data overwrite a domain's last good DR, so it stays in the directory", () => {
+    expect(cacheWriteFor({ kind: "no_data" }, staleOk)).toBeNull();
+    expect(cacheWriteFor({ kind: "ok", dr: 41 }, staleOk)).toEqual({ dr: 41, status: "ok" });
   });
 });
 
@@ -54,6 +59,16 @@ describe("urlUpdateFor", () => {
       dr: 5,
       source: "live",
       checked_at: now.toISOString(),
+      error_message: null,
+    });
+  });
+
+  it("shows the last good DR as stale when Ahrefs answers no_data for a known domain", () => {
+    expect(urlUpdateFor({ kind: "no_data" }, 1, staleOk, now)).toEqual({
+      status: "done",
+      dr: 40,
+      source: "stale",
+      checked_at: staleOk.checked_at,
       error_message: null,
     });
   });

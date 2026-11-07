@@ -46,11 +46,21 @@ export function classifyAhrefsResponse(httpStatus: number, body: unknown): Ahref
 }
 
 // Transient failures are never cached, so a rate-limit blip can't poison
-// the directory.
-export function cacheWriteFor(result: AhrefsResult): { dr: number | null; status: DomainStatus } | null {
+// the directory. no_data never replaces a good DR either: the domain keeps its
+// last reading (and its directory page), and stays due for the next refresh.
+export function cacheWriteFor(
+  result: AhrefsResult,
+  previous: DomainCacheRow | null,
+): { dr: number | null; status: DomainStatus } | null {
   if (result.kind === "ok") return { dr: result.dr, status: "ok" };
-  if (result.kind === "no_data") return { dr: null, status: "no_data" };
+  if (result.kind === "no_data" && !lastGoodReading(previous)) return { dr: null, status: "no_data" };
   return null;
+}
+
+// The url fields that show a domain's last good DR when no new one is available.
+function lastGoodReading(previous: DomainCacheRow | null): TablesUpdate<"urls"> | null {
+  if (previous?.status !== "ok" || previous.dr === null) return null;
+  return { status: "done", dr: previous.dr, source: "stale", checked_at: previous.checked_at, error_message: null };
 }
 
 // Only real readings become history; no_data and transient results never do.
@@ -69,7 +79,10 @@ export function urlUpdateFor(
     return { status: "done", dr: result.dr, source: "live", checked_at: now.toISOString(), error_message: null };
   }
   if (result.kind === "no_data") {
-    return { status: "error", dr: null, source: "no_data", checked_at: now.toISOString(), error_message: NO_DATA_MESSAGE };
+    return (
+      lastGoodReading(previous) ??
+      { status: "error", dr: null, source: "no_data", checked_at: now.toISOString(), error_message: NO_DATA_MESSAGE }
+    );
   }
   if (attempts < MAX_ATTEMPTS) {
     return {
@@ -78,8 +91,5 @@ export function urlUpdateFor(
       error_message: result.error,
     };
   }
-  if (previous?.status === "ok" && previous.dr !== null) {
-    return { status: "done", dr: previous.dr, source: "stale", checked_at: previous.checked_at, error_message: null };
-  }
-  return { status: "error", dr: null, source: null, checked_at: null, error_message: result.error };
+  return lastGoodReading(previous) ?? { status: "error", dr: null, source: null, checked_at: null, error_message: result.error };
 }
