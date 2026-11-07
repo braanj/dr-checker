@@ -184,6 +184,7 @@ https://another-site.org,competitor</pre>
           <ul class="mt-2 list-disc list-inside space-y-1">
             <li>Up to 100 typed domains or 1,000 CSV rows per check.</li>
             <li>Up to 10 checks per minute from the same network, and 10,000 result rows per day.</li>
+            <li>Up to 2,000 new domains per hour from the same network (domains already in the directory don't count).</li>
             <li>Results links are kept for 7 days.</li>
             <li>A DR is reused for 30 days before it's checked again.</li>
             <li>DR is per host: <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">blog.example.com</code> and <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">example.com</code> are separate entries.</li>

@@ -54,15 +54,20 @@ export function parseCsvUrls(text: string): string[] {
 
 // Normalizes every entry and enforces `max` on the *valid* rows only.
 // Duplicates are kept: each submitted line gets its own result row.
+// Stops at the first row past the cap: this runs before the rate limit, so a
+// huge upload must be rejected without normalizing every line.
 export function buildCheckRows(raw: string[], max: number): { rows: CheckRow[]; skipped: number } {
-  const rows = raw
-    .map((original_url) => ({ original_url, domain: normalizeDomain(original_url) }))
-    .filter((r): r is CheckRow => !!r.domain);
+  const rows: CheckRow[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const domain = normalizeDomain(raw[i]);
+    if (!domain) continue;
+    if (rows.length === max) {
+      throw new CheckInputError(`Max ${max} domains per check (got more than ${max})`);
+    }
+    rows.push({ original_url: raw[i], domain });
+  }
 
   if (rows.length === 0) throw new CheckInputError("No valid domains found");
-  if (rows.length > max) {
-    throw new CheckInputError(`Max ${max} domains per check (got ${rows.length})`);
-  }
 
   return { rows, skipped: raw.length - rows.length };
 }

@@ -80,6 +80,18 @@ describe("buildCheckRows", () => {
     expect(buildCheckRows([...domainsN(100), "junk", "localhost"], 100).skipped).toBe(2);
     expect(() => buildCheckRows(domainsN(101), 100)).toThrow("Max 100 domains per check");
   });
+
+  it("stops normalizing as soon as the cap is passed, so a huge upload is rejected cheaply", () => {
+    let normalized = 0;
+    const raw = new Proxy(domainsN(100_000), {
+      get(target, key, recv) {
+        if (typeof key === "string" && /^\d+$/.test(key)) normalized = Math.max(normalized, Number(key) + 1);
+        return Reflect.get(target, key, recv);
+      },
+    });
+    expect(() => buildCheckRows(raw, 100)).toThrow("Max 100 domains per check");
+    expect(normalized).toBeLessThanOrEqual(101);
+  });
 });
 
 describe("planUrlRows", () => {
