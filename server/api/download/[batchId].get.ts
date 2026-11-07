@@ -1,23 +1,5 @@
-import { attachmentHeader } from "../../utils/domainsCsv";
+import { attachmentHeader, buildResultsCsv } from "../../utils/domainsCsv";
 import { supabaseAdmin } from "../../utils/supabaseAdmin";
-
-type CsvRow = {
-  original_url: string;
-  domain: string;
-  dr: number | null;
-  status: string;
-  source: string | null;
-  checked_at: string | null;
-};
-
-function toCsv(rows: CsvRow[]) {
-  const header = "url,domain,domain_rating,status,source,checked_at";
-  const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
-  const lines = rows.map((r) =>
-    [escape(r.original_url), escape(r.domain), r.dr ?? "", r.status, r.source ?? "", r.checked_at ?? ""].join(","),
-  );
-  return [header, ...lines].join("\n");
-}
 
 export default defineEventHandler(async (event) => {
   const batchId = getRouterParam(event, "batchId");
@@ -47,7 +29,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, statusMessage: urlsError?.message ?? "Failed to load results" });
   }
 
-  const csv = toCsv(urls);
+  const csv = buildResultsCsv(urls);
   const safeName = (batch.filename || "results").replace(/\.csv$/i, "");
 
   setResponseHeaders(event, {
