@@ -596,6 +596,14 @@ select cron.schedule(
   $$delete from public.check_requests where created_at < now() - interval '1 day'$$
 );
 
+-- pg_cron never trims its own run log; the 10 s backstop alone adds ~10,000 rows a day
+select cron.unschedule(jobid) from cron.job where jobname = 'cron-history-cleanup';
+select cron.schedule(
+  'cron-history-cleanup',
+  '17 * * * *',
+  $$delete from cron.job_run_details where end_time < now() - interval '7 days'$$
+);
+
 -- ----------------------------------------------------------------------------
 -- pg_cron backstop (ADR 0002): every 10 s, kick_worker() starts the worker
 -- only if rows are due (retries after backoff, stuck-row reclaim). It reads
