@@ -50,18 +50,21 @@ export type Database = {
           id: number
           ip: string
           kind: string
+          weight: number
         }
         Insert: {
           created_at?: string
           id?: never
           ip: string
           kind?: string
+          weight?: number
         }
         Update: {
           created_at?: string
           id?: never
           ip?: string
           kind?: string
+          weight?: number
         }
         Relationships: []
       }
@@ -256,7 +259,13 @@ export type Database = {
         Returns: boolean
       }
       register_check_request: {
-        Args: { p_ip: string; p_kind?: string; p_limit?: number }
+        Args: {
+          p_ip: string
+          p_kind?: string
+          p_limit?: number
+          p_weight?: number
+          p_window_seconds?: number
+        }
         Returns: boolean
       }
       release_worker_lease: { Args: { p_holder: string }; Returns: undefined }

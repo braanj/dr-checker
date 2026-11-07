@@ -91,7 +91,7 @@ pg_cron (1 min) → kick_meta_worker() → Edge Function fetch-meta → safeFetc
 - All DB access goes through `server/utils/supabaseAdmin.ts` (service role, typed `createClient<Database>`). It is **server-only**.
 - Every table has RLS on and no policies. Every RPC has execute revoked from `public`/`anon`/`authenticated`.
 - The browser's anon client (`composables/useSupabase.ts`) is used only for Realtime.
-- `/api/check` and `/api/domains/export` each allow 10 requests/min per IP, in separate buckets (`check_requests.kind` = `check`|`export`; `register_check_request(p_ip, p_limit, p_kind)`, `assertRateLimit(event, kind)`; IP from `x-nf-client-connection-ip`), and send `Retry-After: 60` on 429.
+- `/api/check` and `/api/domains/export` each allow 10 requests/min per IP, in separate buckets (`check_requests.kind` = `check`|`export`; IP from `x-nf-client-connection-ip`). `/api/check` also charges each IP's uncached (queued) domains against the `rows` bucket, 2,000 per hour, after the cache lookup and before any insert, so one script can't monopolize the ~140 calls/min worker. Limits live in the `LIMITS` table in `server/utils/rateLimit.ts` (`assertRateLimit(event, kind, weight)` → `register_check_request(p_ip, p_limit, p_kind, p_weight, p_window_seconds)`, which sums `weight` over the window). A 429 sends `Retry-After` equal to the window.
 - `status`/`source` columns are `text` + CHECK, so the generated types say `string`. Narrow them with an explicit cast where you read them.
 
 ## Where things are

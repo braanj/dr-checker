@@ -4,6 +4,8 @@
 // url rows. Inserting pending rows starts the worker via the statement
 // trigger trg_urls_kick_worker (ADR 0002).
 
+import type { H3Event } from "h3";
+import { assertRateLimit } from "./rateLimit";
 import { supabaseAdmin } from "./supabaseAdmin";
 import { initialBatchStatus, planUrlRows, resultsDisplay, type CheckRow, type CheckSource } from "./checkInput";
 import type { DomainCacheRow } from "../../supabase/functions/_shared/cache";
@@ -20,12 +22,15 @@ export interface CheckResponse {
   display: "inline" | "page";
 }
 
-export async function createCheck(opts: {
-  rows: CheckRow[];
-  skipped: number;
-  label: string;
-  source: CheckSource;
-}): Promise<CheckResponse> {
+export async function createCheck(
+  opts: {
+    rows: CheckRow[];
+    skipped: number;
+    label: string;
+    source: CheckSource;
+  },
+  event: H3Event,
+): Promise<CheckResponse> {
   const admin = supabaseAdmin();
 
   const uniqueDomains = [...new Set(opts.rows.map((r) => r.domain))];
@@ -44,6 +49,8 @@ export async function createCheck(opts: {
 
   const { planned, resolved } = planUrlRows(opts.rows, cache, new Date());
   const total = planned.length;
+  // only uncached domains reach Ahrefs, so only they spend the IP's queue budget
+  if (total > resolved) await assertRateLimit(event, "rows", total - resolved);
 
   const { data: batch, error: batchError } = await admin
     .from("batches")

@@ -1,16 +1,20 @@
-// Per-IP request limits, stored in Postgres because Nitro runs as short-lived
-// Netlify functions (in-memory counters would reset). Each kind has its own bucket.
+// Per-IP limits, stored in Postgres because Nitro runs as short-lived Netlify
+// functions (in-memory counters would reset). Each kind has its own bucket.
 
 import type { H3Event } from "h3";
 import { supabaseAdmin } from "./supabaseAdmin";
 
-export type RateLimitKind = "check" | "export";
+export type RateLimitKind = "check" | "export" | "rows";
 
-const REQUESTS_PER_MINUTE = 10;
-
-const MESSAGES: Record<RateLimitKind, string> = {
-  check: "Too many checks — try again in a minute",
-  export: "Too many exports — try again in a minute",
+const LIMITS: Record<RateLimitKind, { limit: number; windowSeconds: number; message: string }> = {
+  check: { limit: 10, windowSeconds: 60, message: "Too many checks — try again in a minute" },
+  export: { limit: 10, windowSeconds: 60, message: "Too many exports — try again in a minute" },
+  // the worker clears about 8,000 uncached domains an hour; one IP gets a quarter of that
+  rows: {
+    limit: 2000,
+    windowSeconds: 3600,
+    message: "Too many new domains from your network this hour (2,000 max; domains already in the directory don't count). Try again later.",
+  },
 };
 
 function clientIp(event: H3Event): string {
@@ -21,19 +25,23 @@ function clientIp(event: H3Event): string {
   );
 }
 
-export async function assertRateLimit(event: H3Event, kind: RateLimitKind = "check") {
+// `weight` is what this request costs: 1, or the number of queued domains for "rows".
+export async function assertRateLimit(event: H3Event, kind: RateLimitKind = "check", weight = 1) {
+  const { limit, windowSeconds, message } = LIMITS[kind];
   const { data, error } = await supabaseAdmin().rpc("register_check_request", {
     p_ip: clientIp(event),
-    p_limit: REQUESTS_PER_MINUTE,
+    p_limit: limit,
     p_kind: kind,
+    p_weight: weight,
+    p_window_seconds: windowSeconds,
   });
 
   if (error) {
     throw createError({ statusCode: 500, statusMessage: `Rate limit check failed: ${error.message}` });
   }
   if (data !== true) {
-    // The window is one minute, so 60 s is always enough.
-    setResponseHeader(event, "Retry-After", 60);
-    throw createError({ statusCode: 429, statusMessage: MESSAGES[kind] });
+    // the window is the longest anyone waits for capacity to free up
+    setResponseHeader(event, "Retry-After", windowSeconds);
+    throw createError({ statusCode: 429, statusMessage: message });
   }
 }

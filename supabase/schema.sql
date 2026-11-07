@@ -64,11 +64,13 @@ create index if not exists idx_domains_dr_change on public.domains (dr_change);
 create index if not exists idx_domains_dr on public.domains (dr);
 create index if not exists idx_domains_checked_at on public.domains (checked_at);
 
--- Per-IP request log for /api/check rate limiting.
+-- Per-IP request log for rate limiting. `weight` is 1 per request, or the number
+-- of queued (uncached) domains for kind 'rows'.
 create table if not exists public.check_requests (
   id         bigint generated always as identity primary key,
   ip         text not null,
-  kind       text not null default 'check' check (kind in ('check', 'export')),
+  kind       text not null default 'check' check (kind in ('check', 'export', 'rows')),
+  weight     integer not null default 1 check (weight > 0),
   created_at timestamptz not null default now()
 );
 create index if not exists idx_check_requests_ip_kind_created on public.check_requests (ip, kind, created_at);
@@ -225,36 +227,43 @@ end;
 $$;
 
 -- ----------------------------------------------------------------------------
--- Rate limiting: records the request and returns true, or returns false if
--- the IP already made p_limit requests of that kind in the last minute.
+-- Rate limiting: records the request with its weight and returns true, or
+-- returns false if it would take the IP's weights of that kind within the
+-- window past p_limit. p_window_seconds must stay under 1 day (cleanup cron).
 -- ----------------------------------------------------------------------------
 
-create or replace function public.register_check_request(p_ip text, p_limit integer default 10, p_kind text default 'check')
+create or replace function public.register_check_request(
+  p_ip text,
+  p_limit integer default 10,
+  p_kind text default 'check',
+  p_weight integer default 1,
+  p_window_seconds integer default 60
+)
 returns boolean
 language plpgsql
 as $$
 declare
-  v_recent integer;
+  v_used integer;
 begin
-  -- serialize concurrent requests from the same IP and kind so the count is exact
+  -- serialize concurrent requests from the same IP and kind so the sum is exact
   perform pg_advisory_xact_lock(hashtext(p_ip || ':' || p_kind));
 
-  select count(*) into v_recent
+  select coalesce(sum(weight), 0) into v_used
   from public.check_requests
-  where ip = p_ip and kind = p_kind and created_at > now() - interval '1 minute';
+  where ip = p_ip and kind = p_kind and created_at > now() - make_interval(secs => p_window_seconds);
 
-  if v_recent >= p_limit then
+  if v_used + p_weight > p_limit then
     return false;
   end if;
 
-  insert into public.check_requests (ip, kind) values (p_ip, p_kind);
+  insert into public.check_requests (ip, kind, weight) values (p_ip, p_kind, p_weight);
   return true;
 end;
 $$;
 
 -- RPCs are server-only (service role).
 revoke execute on function public.claim_pending_urls(integer) from public, anon, authenticated;
-revoke execute on function public.register_check_request(text, integer, text) from public, anon, authenticated;
+revoke execute on function public.register_check_request(text, integer, text, integer, integer) from public, anon, authenticated;
 revoke execute on function public.domain_trends(text[], integer) from public, anon, authenticated;
 
 -- ----------------------------------------------------------------------------
