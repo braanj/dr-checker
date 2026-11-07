@@ -6,6 +6,8 @@
 </template>
 
 <script setup lang="ts">
+useHead({ title: "Check results | DR Checker" });
+
 const route = useRoute();
 const batchId = route.params.batchId as string;
 </script>
