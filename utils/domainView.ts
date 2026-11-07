@@ -1,5 +1,8 @@
 // Shape of GET /api/domain/:domain and the pure helpers the domain page uses.
 
+import { CACHE_TTL_DAYS, isFresh } from "../supabase/functions/_shared/cache";
+import { isoDate } from "./checkedAgo";
+
 export interface DomainMetaView {
   title: string | null;
   description: string | null;
@@ -79,4 +82,23 @@ export function sparklinePath(values: number[], width: number, height: number): 
   return values
     .map((v, i) => `${i === 0 ? "M" : "L"}${Math.round(i * step * 100) / 100},${Math.round(y(v) * 100) / 100}`)
     .join(" ");
+}
+
+// A check inside the cache window only returns the cached DR, so the page
+// offers the date the directory refresh takes over instead of a Re-check.
+// null once stale: a Re-check would fetch a new reading.
+export function nextAutoRecheck(checkedAt: string, now: Date): string | null {
+  if (!isFresh({ status: "ok", checked_at: checkedAt }, now)) return null;
+  return isoDate(new Date(new Date(checkedAt).getTime() + CACHE_TTL_DAYS * 86_400_000).toISOString());
+}
+
+// Display only: keeps the newest reading per UTC day of a newest-first history.
+export function historyByDay<T extends { checked_at: string }>(history: T[]): T[] {
+  const seen = new Set<string>();
+  return history.filter((h) => {
+    const day = isoDate(h.checked_at);
+    if (seen.has(day)) return false;
+    seen.add(day);
+    return true;
+  });
 }
