@@ -21,7 +21,7 @@
           <span class="text-[15px] font-medium text-[#1d1d1f]">
             {{ file ? file.name : "Click to choose a CSV file" }}
           </span>
-          <span class="text-xs text-[#86868b]">Max 1,000 URLs</span>
+          <span class="text-xs text-[#6e6e73]">Max 1,000 URLs</span>
           <input type="file" accept=".csv,text/csv" class="sr-only" @change="onFileChange" />
         </label>
 
@@ -34,7 +34,7 @@
           <button type="button" class="text-accent hover:underline" @click="toggleMode">
             {{ mode === "typed" ? "or upload a CSV" : "or type domains" }}
           </button>
-          <span class="text-xs text-[#86868b]">Checked domains are added to the public directory.</span>
+          <span class="text-xs text-[#6e6e73]">Checked domains are added to the public directory.</span>
         </div>
 
         <p v-if="errorMsg" role="alert" class="text-sm text-red-600">{{ errorMsg }}</p>
