@@ -19,6 +19,29 @@
         </div>
       </div>
 
+      <section class="mt-6 rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
+        <p class="text-sm text-[#424245]">
+          Domain Rating (DR) is Ahrefs' 0–100 score of how strong a site's backlink profile is.
+        </p>
+        <form class="mt-4" @submit.prevent="checkAnother">
+          <label for="another-domain" class="text-sm font-medium text-[#1d1d1f]">Check another domain</label>
+          <div class="mt-1.5 flex flex-wrap gap-2">
+            <input id="another-domain" v-model="another" type="text" inputmode="url" autocomplete="off"
+              autocapitalize="off" spellcheck="false" placeholder="example.com"
+              class="min-w-0 flex-1 basis-48 rounded-full border border-black/10 bg-white px-4 py-2.5 text-[15px] text-[#1d1d1f] transition-colors focus:border-accent/50 focus:outline-none" />
+            <button type="submit" :disabled="!another.trim() || anotherChecking"
+              class="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-black/20">
+              {{ anotherChecking ? "Checking…" : "Check DR" }}
+            </button>
+          </div>
+          <p v-if="anotherError" role="alert" class="mt-2 text-sm text-red-600">{{ anotherError }}</p>
+        </form>
+        <NuxtLink to="/"
+          class="mt-3 inline-block text-sm text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+          Check up to 100 domains at once →
+        </NuxtLink>
+      </section>
+
       <div v-if="view.meta?.title || view.meta?.description"
         class="mt-6 rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
         <p class="text-xs font-medium text-[#6e6e73]">From the site</p>
@@ -68,6 +91,12 @@
       {{ checking ? "Checking…" : view ? "Re-check" : "Check its DR now" }}
     </button>
     <p v-if="checkError" role="alert" class="mt-3 text-sm text-red-600">{{ checkError }}</p>
+    <p v-if="param && !view" class="mt-4">
+      <NuxtLink to="/"
+        class="text-sm text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+        Check up to 100 domains at once →
+      </NuxtLink>
+    </p>
 
     <CheckResults v-if="checkId" :key="checkId" :batch-id="checkId" :show-title="false" />
   </div>
@@ -139,6 +168,27 @@ async function recheck() {
     checkError.value = e?.data?.statusMessage ?? "Check failed. Please try again.";
   } finally {
     checking.value = false;
+  }
+}
+
+const another = ref("");
+const anotherChecking = ref(false);
+const anotherError = ref("");
+
+async function checkAnother() {
+  if (!another.value.trim()) return;
+  anotherChecking.value = true;
+  anotherError.value = "";
+  try {
+    const res = await submitCheck({ source: "typed", domains: another.value });
+    track("domain_page_check", { rows: res.total });
+    const inline = res.display === "inline";
+    await navigateTo(recentHref({ batchId: res.batchId, inline }));
+    if (inline) focusWhenPresent("check-results");
+  } catch (e: any) {
+    anotherError.value = e?.data?.statusMessage ?? "Check failed. Please try again.";
+  } finally {
+    anotherChecking.value = false;
   }
 }
 </script>

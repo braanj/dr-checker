@@ -173,7 +173,9 @@ https://another-site.org,competitor</pre>
             1,000 domains at a time and 10 exports per minute. Domains that no longer have a DR are skipped.
           </p>
           <p class="mt-3">
-            Click a domain to open its page: current DR, DR history and a <strong>Re-check</strong> button.
+            Click a domain to open its page: current DR, DR history (one reading per day) and a form to check another domain.
+            Once a DR is older than 30 days the page shows a <strong>Re-check</strong> button; before that it shows when the
+            automatic re-check is due, because a check inside that window returns the same cached DR.
             Domain pages also show the site's favicon, title and description, refreshed monthly.
           </p>
         </section>
