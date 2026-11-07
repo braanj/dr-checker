@@ -11,10 +11,14 @@
     </header>
     <div class="mx-auto max-w-2xl px-4 pb-24">
       <form class="space-y-4" @submit.prevent="onSubmit">
-        <textarea v-if="mode === 'typed'" v-model="domainsText" rows="4"
+        <textarea v-if="mode === 'typed'" ref="textareaEl" v-model="domainsText" rows="4"
           placeholder="example.com, another-site.org&#10;one per line or comma-separated (max 100)"
           aria-label="Domains to check"
           class="w-full rounded-2xl border border-black/10 bg-white p-4 text-[15px] text-[#1d1d1f] shadow-sm transition-colors focus:border-accent/50 focus:outline-none" />
+        <p v-if="mode === 'typed' && domainsText.trim()" class="-mt-3 text-right text-xs"
+          :class="typedCount > TYPED_MAX ? 'text-red-600' : 'text-[#6e6e73]'">
+          {{ typedCount }} / {{ TYPED_MAX }}
+        </p>
 
         <label v-else
           class="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-black/15 bg-white p-12 text-center shadow-sm transition-colors cursor-pointer hover:border-accent/50 hover:bg-accent-light/40 focus-within:ring-2 focus-within:ring-accent">
@@ -30,8 +34,8 @@
           {{ submitting ? "Checking…" : "Check DR" }}
         </button>
 
-        <div class="flex items-center justify-between text-sm">
-          <button type="button" class="text-accent hover:underline" @click="toggleMode">
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
+          <button type="button" class="whitespace-nowrap text-accent hover:underline" @click="toggleMode">
             {{ mode === "typed" ? "or upload a CSV" : "or type domains" }}
           </button>
           <span class="text-xs text-[#6e6e73]">Checked domains are added to the public directory.</span>
@@ -45,7 +49,12 @@
       <CheckResults v-if="inlineCheckId" :key="inlineCheckId" :batch-id="inlineCheckId" :show-title="false"
         @completed="completed = true" />
 
-      <div v-if="completed" class="mt-4 text-sm">
+      <div v-if="completed" class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+        <button type="button"
+          class="text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          @click="checkMore">
+          Check more domains
+        </button>
         <NuxtLink to="/domains"
           class="text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
           See all domains →
@@ -82,6 +91,7 @@
 
 <script setup lang="ts">
 import type { CheckResponse } from "~/server/utils/createCheck";
+import { TYPED_MAX } from "~/server/utils/checkInput";
 
 useHead({ title: "DR Checker: bulk Ahrefs Domain Rating checker" });
 
@@ -110,6 +120,8 @@ const file = ref<File | null>(null);
 const submitting = ref(false);
 const errorMsg = ref("");
 const infoMsg = ref("");
+const textareaEl = ref<HTMLTextAreaElement | null>(null);
+const typedCount = computed(() => typedDomainCount(domainsText.value));
 
 const route = useRoute();
 const router = useRouter();
@@ -128,6 +140,16 @@ const canSubmit = computed(() =>
 function toggleMode() {
   mode.value = mode.value === "typed" ? "csv" : "typed";
   errorMsg.value = "";
+}
+
+async function checkMore() {
+  domainsText.value = "";
+  errorMsg.value = "";
+  infoMsg.value = "";
+  mode.value = "typed";
+  await router.replace({ query: {} });
+  await nextTick();
+  textareaEl.value?.focus();
 }
 
 function onFileChange(e: Event) {
