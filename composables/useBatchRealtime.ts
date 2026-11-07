@@ -50,6 +50,7 @@ export function useBatchRealtime(batchId: string) {
   // or stayed silent while the batch is unfinished
   let lastBroadcastAt = Date.now();
   let channelFailed = false;
+  let notFound = false;
   let pollTimer: ReturnType<typeof setInterval> | null = null;
 
   function upsertUrl(row: UrlRow) {
@@ -90,6 +91,7 @@ export function useBatchRealtime(batchId: string) {
       urls.value = res.urls.map((u) => live.get(u.id) ?? u);
       batch.value = { ...res.batch, ...liveBatch };
     } catch (e: any) {
+      notFound = e?.statusCode === 404;
       error.value = e?.data?.statusMessage ?? "Failed to load batch";
     } finally {
       loading.value = false;
@@ -103,8 +105,10 @@ export function useBatchRealtime(batchId: string) {
       urls.value = res.urls;
       batch.value = res.batch;
       liveBatch = {};
-    } catch {
-      // keep the last view; the next tick retries
+      error.value = null; // recovered from a failed first load
+    } catch (e: any) {
+      // keep the last view; the next tick retries, unless the batch is gone
+      notFound = e?.statusCode === 404;
     }
   }
 
@@ -114,11 +118,11 @@ export function useBatchRealtime(batchId: string) {
     lastBroadcastAt = Date.now();
     pollTimer = setInterval(() => {
       const status = batch.value?.status;
-      if (status === "completed" || status === "failed") {
+      if (notFound || status === "completed" || status === "failed") {
         if (pollTimer) clearInterval(pollTimer);
         return;
       }
-      if (shouldPoll({ status, channelFailed, lastBroadcastAt, now: Date.now() })) void refresh();
+      if (shouldPoll({ status, channelFailed, lastBroadcastAt, now: Date.now(), notFound })) void refresh();
     }, POLL_INTERVAL_MS);
   });
 
