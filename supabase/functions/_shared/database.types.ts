@@ -252,6 +252,7 @@ export type Database = {
           dr: number
         }[]
       }
+      enqueue_dr_refresh: { Args: { p_limit?: number }; Returns: number }
       kick_meta_worker: { Args: never; Returns: undefined }
       kick_worker: { Args: never; Returns: undefined }
       meta_due: {
