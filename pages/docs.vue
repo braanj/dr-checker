@@ -35,7 +35,7 @@
             1,000). Processing happens on the server and results update live as each domain finishes.
           </p>
           <p class="mt-3">
-            There are no accounts: every check gets its own private results link. Every domain that gets
+            There are no accounts: every check gets its own private results link, kept for 7 days. Every domain that gets
             a DR is added to the public <a href="#directory" class="text-accent hover:underline">domains directory</a>
             (the <strong>Domains</strong> page in the sidebar).
           </p>
@@ -143,6 +143,7 @@ https://another-site.org,competitor</pre>
             Once results start coming in, a <strong>Download CSV</strong> button appears above the table.
             The exported file has one row per submitted URL with columns
             <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">url, domain, domain_rating, status, source, checked_at</code>.
+            Results links are deleted after 7 days, so download the CSV if you want to keep them.
           </p>
         </section>
 
@@ -182,7 +183,8 @@ https://another-site.org,competitor</pre>
           <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">8. Limits and things to know</h2>
           <ul class="mt-2 list-disc list-inside space-y-1">
             <li>Up to 100 typed domains or 1,000 CSV rows per check.</li>
-            <li>Up to 10 checks per minute from the same network.</li>
+            <li>Up to 10 checks per minute from the same network, and 10,000 result rows per day.</li>
+            <li>Results links are kept for 7 days.</li>
             <li>A DR is reused for 30 days before it's checked again.</li>
             <li>DR is per host: <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">blog.example.com</code> and <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">example.com</code> are separate entries.</li>
             <li>Everything you check (with a DR) becomes visible in the public directory.</li>

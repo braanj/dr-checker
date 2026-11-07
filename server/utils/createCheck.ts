@@ -32,6 +32,8 @@ export async function createCheck(
   event: H3Event,
 ): Promise<CheckResponse> {
   const admin = supabaseAdmin();
+  // every row is stored, cached or not, so all of them spend the IP's storage budget
+  await assertRateLimit(event, "stored", opts.rows.length);
 
   const uniqueDomains = [...new Set(opts.rows.map((r) => r.domain))];
   const cache: DomainCacheRow[] = [];
