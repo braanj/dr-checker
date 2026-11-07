@@ -7,6 +7,7 @@ import { useRuntimeConfig } from "#imports";
 import { domainPath } from "../../../utils/domainPath";
 import { siteBase } from "../../../utils/domainView";
 import {
+  attachmentHeader,
   buildDomainsCsv,
   ExportInputError,
   exportFilename,
@@ -73,7 +74,7 @@ export default defineEventHandler(async (event) => {
 
   setResponseHeaders(event, {
     "Content-Type": "text/csv; charset=utf-8",
-    "Content-Disposition": `attachment; filename="${exportFilename(new Date())}"`,
+    "Content-Disposition": attachmentHeader(exportFilename(new Date())),
     "Cache-Control": "no-store",
   });
   return buildDomainsCsv(rows);
