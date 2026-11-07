@@ -3,12 +3,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Fake service-role client: records calls, fails the urls insert on demand.
 const calls: string[] = [];
 let failUrlInsert = false;
+let overBudget = false;
+let cacheRows: unknown[] = [];
 
 function fakeClient() {
   return {
     from(table: string) {
       return {
-        select: () => ({ in: async () => ({ data: [], error: null }) }),
+        select: () => ({ in: async () => ({ data: cacheRows, error: null }) }),
         insert: (rows: unknown) => {
           calls.push(`insert:${table}`);
           if (table === "batches") {
@@ -30,29 +32,56 @@ function fakeClient() {
 }
 
 vi.mock("../server/utils/supabaseAdmin", () => ({ supabaseAdmin: () => fakeClient() }));
+vi.mock("../server/utils/rateLimit", () => ({
+  assertRateLimit: async (_event: unknown, kind: string, weight: number) => {
+    calls.push(`charge:${kind}:${weight}`);
+    if (overBudget) throw new Error("Too many new domains");
+  },
+}));
 vi.stubGlobal("createError", (opts: { statusMessage: string }) => new Error(opts.statusMessage));
 
 const { createCheck } = await import("../server/utils/createCheck");
 
+const event = {} as Parameters<typeof createCheck>[1];
 const rows = [{ original_url: "a.com", domain: "a.com" }];
+const twoRows = [...rows, { original_url: "b.com", domain: "b.com" }];
+const input = (r = rows) => ({ rows: r, skipped: 0, label: "Quick check", source: "typed" as const });
 
 describe("createCheck", () => {
   beforeEach(() => {
     calls.length = 0;
     failUrlInsert = false;
+    overBudget = false;
+    cacheRows = [];
   });
 
   it("deletes the batch when inserting its url rows fails, so no orphan is left", async () => {
     failUrlInsert = true;
-    await expect(createCheck({ rows, skipped: 0, label: "Quick check", source: "typed" })).rejects.toThrow(
-      "Failed to insert URLs: boom",
-    );
+    await expect(createCheck(input(), event)).rejects.toThrow("Failed to insert URLs: boom");
     expect(calls).toContain("delete:batches:id=batch-1");
   });
 
   it("keeps the batch when every insert succeeds", async () => {
-    const res = await createCheck({ rows, skipped: 0, label: "Quick check", source: "typed" });
+    const res = await createCheck(input(), event);
     expect(res).toMatchObject({ batchId: "batch-1", total: 1, queued: 1, display: "inline" });
     expect(calls.some((c) => c.startsWith("delete:"))).toBe(false);
+  });
+
+  it("charges the IP's queue budget for uncached domains only, before inserting anything", async () => {
+    cacheRows = [{ domain: "a.com", dr: 40, status: "ok", checked_at: new Date().toISOString() }];
+    await createCheck(input(twoRows), event);
+    expect(calls).toEqual(["charge:rows:1", "insert:batches", "insert:urls"]);
+  });
+
+  it("does not charge a check the cache fully answers", async () => {
+    cacheRows = [{ domain: "a.com", dr: 40, status: "ok", checked_at: new Date().toISOString() }];
+    await createCheck(input(), event);
+    expect(calls.some((c) => c.startsWith("charge:"))).toBe(false);
+  });
+
+  it("writes nothing when the IP is over its queue budget", async () => {
+    overBudget = true;
+    await expect(createCheck(input(twoRows), event)).rejects.toThrow("Too many new domains");
+    expect(calls).toEqual(["charge:rows:2"]);
   });
 });

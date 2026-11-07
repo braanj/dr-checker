@@ -61,5 +61,5 @@ export default defineEventHandler(async (event) => {
 
   await assertRateLimit(event);
 
-  return createCheck({ ...built, label, source });
+  return createCheck({ ...built, label, source }, event);
 });
