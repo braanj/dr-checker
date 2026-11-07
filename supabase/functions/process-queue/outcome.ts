@@ -46,8 +46,9 @@ export function classifyAhrefsResponse(httpStatus: number, body: unknown): Ahref
 }
 
 // Transient failures are never cached, so a rate-limit blip can't poison
-// the directory. no_data never replaces a good DR either: the domain keeps its
-// last reading (and its directory page), and stays due for the next refresh.
+// the directory. no_data never replaces a good DR either: Ahrefs has not been
+// seen to send it for a scored domain, so a 200 without a numeric DR more likely
+// means a changed response shape, and the domain keeps its last reading and page.
 export function cacheWriteFor(
   result: AhrefsResult,
   previous: DomainCacheRow | null,
