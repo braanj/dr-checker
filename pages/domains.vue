@@ -47,7 +47,9 @@
             <input type="checkbox" :aria-label="`Select ${row.domain}`" class="h-4 w-4 cursor-pointer rounded accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" :checked="selection.has(row.domain)" @change="onToggle(row.domain, $event)" />
           </template>
           <template #select-card="{ row }">
-            <input type="checkbox" :aria-label="`Select ${row.domain}`" class="h-4 w-4 cursor-pointer rounded accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" :checked="selection.has(row.domain)" @change="onToggle(row.domain, $event)" />
+            <label class="-m-1 flex cursor-pointer p-1">
+              <input type="checkbox" :aria-label="`Select ${row.domain}`" class="h-4 w-4 cursor-pointer rounded accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" :checked="selection.has(row.domain)" @change="onToggle(row.domain, $event)" />
+            </label>
           </template>
         </DomainsTable>
       </div>
