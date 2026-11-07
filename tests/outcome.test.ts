@@ -6,6 +6,7 @@ import {
   isExhausted,
   classifyAhrefsResponse,
   planDomain,
+  REJECTED_MESSAGE,
   urlUpdateFor,
 } from "../supabase/functions/process-queue/outcome";
 import { NO_DATA_MESSAGE, type DomainCacheRow } from "../supabase/functions/_shared/cache";
@@ -33,9 +34,33 @@ describe("classifyAhrefsResponse", () => {
     expect(cacheWriteFor(result, null)).toBeNull();
   });
 
-  it("treats any non-200 as transient", () => {
+  it("treats rate limits and server errors as transient", () => {
     expect(classifyAhrefsResponse(429, null)).toEqual({ kind: "transient", error: "Ahrefs HTTP 429" });
     expect(classifyAhrefsResponse(503, null)).toEqual({ kind: "transient", error: "Ahrefs HTTP 503" });
+  });
+
+  it("treats HTTP 400 as a rejected target, since a retry can never succeed", () => {
+    expect(classifyAhrefsResponse(400, null)).toEqual({ kind: "rejected", error: REJECTED_MESSAGE });
+  });
+});
+
+describe("rejected targets", () => {
+  const rejected = { kind: "rejected", error: REJECTED_MESSAGE } as const;
+
+  it("ends the row as an error on the first answer, with no retry", () => {
+    expect(urlUpdateFor(rejected, 1, null, now)).toEqual({
+      status: "error",
+      dr: null,
+      source: null,
+      checked_at: null,
+      error_message: REJECTED_MESSAGE,
+    });
+  });
+
+  it("keeps a known domain's last good DR, and is never cached or recorded", () => {
+    expect(urlUpdateFor(rejected, 1, staleOk, now)).toMatchObject({ status: "done", source: "stale", dr: 40 });
+    expect(cacheWriteFor(rejected, null)).toBeNull();
+    expect(historyWriteFor(rejected)).toBeNull();
   });
 });
 

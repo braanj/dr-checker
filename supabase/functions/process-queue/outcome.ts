@@ -8,6 +8,7 @@ import type { TablesUpdate } from "../_shared/database.types.ts";
 export const MAX_ATTEMPTS = 3;
 export const BACKOFF_SECONDS = 30;
 export const GAVE_UP_MESSAGE = "Gave up after repeated worker failures";
+export const REJECTED_MESSAGE = "Ahrefs rejected this domain (HTTP 400)";
 
 // A row past MAX_ATTEMPTS only gets here by being reclaimed after its
 // worker died mid-run (e.g. a hung fetch). Finalize it without calling
@@ -34,9 +35,11 @@ export function planDomain<R extends { attempts: number }>(
 export type AhrefsResult =
   | { kind: "ok"; dr: number }
   | { kind: "no_data" }
+  | { kind: "rejected"; error: string }
   | { kind: "transient"; error: string };
 
 export function classifyAhrefsResponse(httpStatus: number, body: unknown): AhrefsResult {
+  if (httpStatus === 400) return { kind: "rejected", error: REJECTED_MESSAGE };
   if (httpStatus !== 200) return { kind: "transient", error: `Ahrefs HTTP ${httpStatus}` };
   if (body == null) return { kind: "transient", error: "Ahrefs HTTP 200 with an unreadable body" };
   // Response shape: { domain_rating: { domain_rating: number, ... } } per Ahrefs docs
@@ -84,6 +87,9 @@ export function urlUpdateFor(
       lastGoodReading(previous) ??
       { status: "error", dr: null, source: "no_data", checked_at: now.toISOString(), error_message: NO_DATA_MESSAGE }
     );
+  }
+  if (result.kind === "rejected") {
+    return lastGoodReading(previous) ?? { status: "error", dr: null, source: null, checked_at: null, error_message: result.error };
   }
   if (attempts < MAX_ATTEMPTS) {
     return {
