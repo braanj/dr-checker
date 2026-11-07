@@ -240,7 +240,7 @@ function onSort(col: SortBy) {
 const sortIndex = computed(() => sortOptionIndex(state.value));
 function onSortSelect(e: Event) {
   const o = SORT_OPTIONS[Number((e.target as HTMLSelectElement).value)];
-  if (o) return update({ sortBy: o.sortBy, sortDir: o.sortDir });
+  return update({ sortBy: o.sortBy, sortDir: o.sortDir });
 }
 
 // Only a bare domain search is a "not in the directory" signal; with other filters
@@ -254,7 +254,7 @@ const checkError = ref("");
 
 async function checkSearched() {
   const domain = checkableDomain.value;
-  if (!domain || checking.value) return;
+  if (!domain) return;
   checking.value = true;
   checkError.value = "";
   try {
