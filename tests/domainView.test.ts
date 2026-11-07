@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { domainPageState, domainSeo, formatDr, metaViewFrom, siteBase, sparklinePath, type DomainView } from "../utils/domainView";
+import { domainPageState, domainSeo, formatDr, historyByDay, metaViewFrom, nextAutoRecheck, siteBase, sparklinePath, type DomainView } from "../utils/domainView";
 import { isoDate } from "../utils/checkedAgo";
 import { checkedAgo } from "../utils/checkedAgo";
 
@@ -102,5 +102,27 @@ describe("metaViewFrom", () => {
   it("is null when there is nothing to show", () => {
     expect(metaViewFrom(null, SUPA)).toBeNull();
     expect(metaViewFrom({ status: "error", title: null, description: null, favicon_path: null }, SUPA)).toBeNull();
+  });
+});
+
+describe("nextAutoRecheck", () => {
+  it("gives the end of the 30-day cache window while the reading is fresh", () => {
+    expect(nextAutoRecheck("2026-10-01T12:00:00Z", new Date("2026-10-20T00:00:00Z"))).toBe("2026-10-31");
+  });
+
+  it("is null once the reading is stale, so Re-check shows", () => {
+    expect(nextAutoRecheck("2026-10-01T12:00:00Z", new Date("2026-10-31T12:00:00Z"))).toBeNull();
+  });
+});
+
+describe("historyByDay", () => {
+  it("keeps the newest reading of each day, newest first", () => {
+    const history = [
+      { dr: 93, checked_at: "2026-09-16T20:00:00Z" },
+      { dr: 92, checked_at: "2026-09-16T10:00:00Z" },
+      { dr: 92, checked_at: "2026-09-16T01:00:00Z" },
+      { dr: 90, checked_at: "2026-08-16T10:00:00Z" },
+    ];
+    expect(historyByDay(history)).toEqual([history[0], history[3]]);
   });
 });
