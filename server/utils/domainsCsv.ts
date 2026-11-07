@@ -67,12 +67,11 @@ export interface ResultsCsvRow {
 
 // One check's results, as downloaded from the results page.
 export function buildResultsCsv(rows: ResultsCsvRow[]): string {
-  const header = "url,domain,domain_rating,status,source,checked_at";
-  const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
-  const lines = rows.map((r) =>
-    [escape(r.original_url), escape(r.domain), r.dr ?? "", r.status, r.source ?? "", r.checked_at ?? ""].join(","),
-  );
-  return [header, ...lines].join("\n");
+  const lines = [
+    "url,domain,domain_rating,status,source,checked_at",
+    ...rows.map((r) => [r.original_url, r.domain, r.dr, r.status, r.source, r.checked_at].map(csvCell).join(",")),
+  ];
+  return lines.join("\r\n");
 }
 
 export function exportFilename(now: Date): string {
