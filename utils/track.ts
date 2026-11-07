@@ -3,7 +3,7 @@
 
 export interface Events {
   check_submitted: { source: "typed" | "csv"; rows: number };
-  check_completed: { rows: number; seconds: number };
+  check_completed: { status: "completed" | "failed"; rows: number; seconds: number };
   results_csv_download: { rows: number };
   directory_export: { count: number };
 }
@@ -28,10 +28,15 @@ export function noteSubmitted(batchId: string, rows: number, now = Date.now()): 
   submitted.set(batchId, { submittedAt: now, rows });
 }
 
-export function trackCompleted(batchId: string, now = Date.now(), target?: Target): void {
+export function trackCompleted(
+  batchId: string,
+  status: Events["check_completed"]["status"],
+  now = Date.now(),
+  target?: Target,
+): void {
   const check = submitted.get(batchId);
   if (!check) return;
   submitted.delete(batchId);
   const seconds = Math.round((now - check.submittedAt) / 100) / 10;
-  track("check_completed", { rows: check.rows, seconds }, target);
+  track("check_completed", { status, rows: check.rows, seconds }, target);
 }

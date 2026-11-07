@@ -30,14 +30,21 @@ describe("trackCompleted", () => {
   it("tracks check_completed once for a batch this tab submitted", () => {
     const target: { dataLayer?: unknown[] } = {};
     noteSubmitted("batch-a", 12, 1_000);
-    trackCompleted("batch-a", 4_250, target);
-    trackCompleted("batch-a", 9_000, target);
-    expect(target.dataLayer).toEqual([{ event: "check_completed", rows: 12, seconds: 3.3 }]);
+    trackCompleted("batch-a", "completed", 4_250, target);
+    trackCompleted("batch-a", "completed", 9_000, target);
+    expect(target.dataLayer).toEqual([{ event: "check_completed", status: "completed", rows: 12, seconds: 3.3 }]);
+  });
+
+  it("tells a check where every row failed apart from a finished one", () => {
+    const target: { dataLayer?: unknown[] } = {};
+    noteSubmitted("batch-f", 2, 0);
+    trackCompleted("batch-f", "failed", 1_000, target);
+    expect(target.dataLayer).toEqual([{ event: "check_completed", status: "failed", rows: 2, seconds: 1 }]);
   });
 
   it("tracks nothing for a batch this tab never submitted", () => {
     const target: { dataLayer?: unknown[] } = {};
-    trackCompleted("batch-unknown", 5_000, target);
+    trackCompleted("batch-unknown", "completed", 5_000, target);
     expect(target.dataLayer).toBeUndefined();
   });
 });

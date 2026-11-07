@@ -90,7 +90,7 @@ const { batch, urls, loading, error, progressPct } = useBatchRealtime(props.batc
 watch(
   () => batch.value?.status,
   (status, prev) => {
-    if (status === "completed" || status === "failed") trackCompleted(props.batchId);
+    if (status === "completed" || status === "failed") trackCompleted(props.batchId, status);
     if (status === "completed" && prev !== "completed") emit("completed");
   },
 );
