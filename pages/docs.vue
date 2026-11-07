@@ -241,6 +241,16 @@ https://another-site.org,competitor</pre>
 </template>
 
 <script setup lang="ts">
+useHead({
+  title: "How it works | DR Checker",
+  meta: [
+    {
+      name: "description",
+      content: "How to check Ahrefs Domain Rating in bulk, prepare a CSV, read and download results, and browse the public domains directory.",
+    },
+  ],
+});
+
 const activeId = ref('overview')
 let observer: IntersectionObserver | null = null
 
