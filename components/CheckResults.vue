@@ -90,6 +90,7 @@ const { batch, urls, loading, error, progressPct } = useBatchRealtime(props.batc
 watch(
   () => batch.value?.status,
   (status, prev) => {
+    if (status === "completed" || status === "failed") trackCompleted(props.batchId, status);
     if (status === "completed" && prev !== "completed") emit("completed");
   },
 );
@@ -141,6 +142,7 @@ function sourceBadge(row: UrlRow) {
 }
 
 function download() {
+  if (batch.value) track("results_csv_download", { rows: batch.value.total_urls });
   window.location.href = `/api/download/${props.batchId}`;
 }
 </script>
