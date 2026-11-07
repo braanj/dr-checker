@@ -66,7 +66,7 @@
       @click="recheck">
       {{ checking ? "Checking…" : view ? "Re-check" : "Check its DR now" }}
     </button>
-    <p v-if="checkError" class="mt-3 text-sm text-red-600">{{ checkError }}</p>
+    <p v-if="checkError" role="alert" class="mt-3 text-sm text-red-600">{{ checkError }}</p>
 
     <CheckResults v-if="checkId" :key="checkId" :batch-id="checkId" :show-title="false" />
   </div>
@@ -133,6 +133,7 @@ async function recheck() {
     track("check_submitted", { source: "typed", rows: res.total });
     noteSubmitted(res.batchId, res.total);
     checkId.value = res.batchId;
+    focusWhenPresent("check-results");
   } catch (e: any) {
     checkError.value = e?.data?.statusMessage ?? "Check failed. Please try again.";
   } finally {
