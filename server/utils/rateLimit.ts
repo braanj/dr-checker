@@ -4,7 +4,7 @@
 import type { H3Event } from "h3";
 import { supabaseAdmin } from "./supabaseAdmin";
 
-export type RateLimitKind = "check" | "export" | "rows";
+export type RateLimitKind = "check" | "export" | "rows" | "stored";
 
 const LIMITS: Record<RateLimitKind, { limit: number; windowSeconds: number; message: string }> = {
   check: { limit: 10, windowSeconds: 60, message: "Too many checks — try again in a minute" },
@@ -14,6 +14,13 @@ const LIMITS: Record<RateLimitKind, { limit: number; windowSeconds: number; mess
     limit: 2000,
     windowSeconds: 3600,
     message: "Too many new domains from your network this hour (2,000 max; domains already in the directory don't count). Try again later.",
+  },
+  // every stored result row, cached or not: caps what one IP adds to the database
+  // (~800 bytes a row, results kept 7 days, so at most ~56 MB per IP)
+  stored: {
+    limit: 10_000,
+    windowSeconds: 86_400,
+    message: "Too many rows from your network today (10,000 max). Try again tomorrow.",
   },
 };
 

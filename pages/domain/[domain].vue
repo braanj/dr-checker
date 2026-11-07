@@ -1,6 +1,6 @@
 <template>
   <div class="mx-auto max-w-3xl px-4 py-16">
-    <NuxtLink to="/" class="text-sm text-[#6e6e73] transition-colors hover:text-accent">← Domain directory</NuxtLink>
+    <NuxtLink to="/domains" class="text-sm text-[#6e6e73] transition-colors hover:text-accent">← Domain directory</NuxtLink>
 
     <template v-if="view">
       <div class="mt-6 flex items-center gap-4">

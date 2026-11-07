@@ -10,9 +10,10 @@ import {
   type RecentCheck,
 } from "../utils/recentChecks";
 
-const entry = (id: string, inline = true): RecentCheck => ({
+const NOW = new Date("2026-10-28T00:00:00.000Z");
+const entry = (id: string, inline = true, createdAt = "2026-10-26T00:00:00.000Z"): RecentCheck => ({
   batchId: id,
-  createdAt: "2026-10-26T00:00:00.000Z",
+  createdAt,
   total: 2,
   label: "a.com +1 more",
   inline,
@@ -39,7 +40,13 @@ describe("readRecent", () => {
   it("keeps only valid entries", () => {
     const raw = JSON.stringify([entry("a"), { foo: 1 }]);
     const s = { getItem: (k: string) => (k === RECENT_KEY ? raw : null), setItem: () => {}, removeItem: () => {} };
-    expect(readRecent(s)).toEqual([entry("a")]);
+    expect(readRecent(s, NOW)).toEqual([entry("a")]);
+  });
+  it("drops checks whose results the server has already deleted", () => {
+    const old = entry("old", true, "2026-10-20T23:59:59.000Z"); // just over 7 days before NOW
+    const raw = JSON.stringify([entry("a"), old]);
+    const s = { getItem: () => raw, setItem: () => {}, removeItem: () => {} };
+    expect(readRecent(s, NOW).map((e) => e.batchId)).toEqual(["a"]);
   });
 });
 

@@ -72,6 +72,7 @@ Order matters because `user_id` FKs are `on delete cascade`:
 - Repeat lookups are instant and cost no Ahrefs calls; the directory grows as a side effect of every check.
 - Submitted URLs (including CSV paths) are not enumerable through the anon key; only someone with a batch id can read or listen to that batch.
 - Anyone can submit checks; the per-IP limit and input caps are the only abuse controls. A CAPTCHA (e.g. Turnstile) is the next step if abuse appears.
+  - *Update 2026-11-07:* duplicate lines and cache hits cost no Ahrefs calls but are still stored, so one IP could fill the 0.5 GB database in about an hour. Every stored url row now spends a per-IP `stored` budget (10,000 per 24 h), and batches are deleted after 7 days (cron `batches-retention`), which caps one IP at about 56 MB. Many IPs at once remain an accepted risk; the post-release size check is the early warning.
 - The worker now has retry/backoff and stuck-row recovery, which the previous design claimed but did not implement.
 - Users checking private/client domains publish them to the directory (stated in UI copy).
 - Ahrefs' behavior for unknown domains is unverified; if it returns DR 0 rather than no DR, `no_data` will rarely occur.

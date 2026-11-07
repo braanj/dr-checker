@@ -70,18 +70,26 @@ describe("createCheck", () => {
   it("charges the IP's queue budget for uncached domains only, before inserting anything", async () => {
     cacheRows = [{ domain: "a.com", dr: 40, status: "ok", checked_at: new Date().toISOString() }];
     await createCheck(input(twoRows), event);
-    expect(calls).toEqual(["charge:rows:1", "insert:batches", "insert:urls"]);
+    expect(calls).toEqual(["charge:stored:2", "charge:rows:1", "insert:batches", "insert:urls"]);
   });
 
-  it("does not charge a check the cache fully answers", async () => {
+  it("charges the queue budget once per distinct uncached domain, since duplicates share one Ahrefs call", async () => {
+    const dupes = [...twoRows, { original_url: "https://b.com/x", domain: "b.com" }];
+    await createCheck(input(dupes), event);
+    expect(calls).toContain("charge:rows:2");
+    expect(calls).toContain("charge:stored:3");
+  });
+
+  it("charges only the storage budget when the cache fully answers the check", async () => {
     cacheRows = [{ domain: "a.com", dr: 40, status: "ok", checked_at: new Date().toISOString() }];
     await createCheck(input(), event);
-    expect(calls.some((c) => c.startsWith("charge:"))).toBe(false);
+    expect(calls.filter((c) => c.startsWith("charge:"))).toEqual(["charge:stored:1"]);
   });
 
-  it("writes nothing when the IP is over its queue budget", async () => {
+  it("charges every stored row, cached duplicates included, before reading the cache", async () => {
     overBudget = true;
-    await expect(createCheck(input(twoRows), event)).rejects.toThrow("Too many new domains");
-    expect(calls).toEqual(["charge:rows:2"]);
+    const dupes = Array.from({ length: 3 }, () => ({ original_url: "a.com", domain: "a.com" }));
+    await expect(createCheck(input(dupes), event)).rejects.toThrow("Too many new domains");
+    expect(calls).toEqual(["charge:stored:3"]);
   });
 });

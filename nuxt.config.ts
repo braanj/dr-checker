@@ -1,3 +1,4 @@
+// read at build time; without it no tag is injected (no `gtm.js?id=undefined` request)
 const GTM_ID = process.env.GTM_ID;
 
 export default defineNuxtConfig({
@@ -7,7 +8,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      script: [
+      script: GTM_ID ? [
         {
           textContent: `<!-- Google Tag Manager -->
 (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -19,8 +20,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           tagPriority: "critical",
           type: "text/javascript",
         },
-      ],
-      noscript: [
+      ] : [],
+      noscript: GTM_ID ? [
         {
           innerHTML: `<!-- Google Tag Manager (noscript) -->
 <iframe src="https://www.googletagmanager.com/ns.html?id=${GTM_ID}"
@@ -28,7 +29,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe>
 <!-- End Google Tag Manager (noscript) -->`,
           tagPosition: "bodyOpen",
         },
-      ],
+      ] : [],
     },
   },
 

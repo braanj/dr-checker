@@ -54,6 +54,13 @@ describe("assertRateLimit", () => {
     expect(headers["Retry-After"]).toBe("3600");
   });
 
+  it("charges every stored row against a daily budget", async () => {
+    allowed = false;
+    await expect(assertRateLimit(event, "stored", 1000)).rejects.toMatchObject({ statusCode: 429 });
+    expect(lastArgs).toMatchObject({ p_kind: "stored", p_weight: 1000, p_limit: 10000, p_window_seconds: 86400 });
+    expect(headers["Retry-After"]).toBe("86400");
+  });
+
   it("uses the export bucket and message", async () => {
     allowed = false;
     await expect(assertRateLimit(event, "export")).rejects.toMatchObject({

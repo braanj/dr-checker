@@ -64,12 +64,12 @@ create index if not exists idx_domains_dr_change on public.domains (dr_change);
 create index if not exists idx_domains_dr on public.domains (dr);
 create index if not exists idx_domains_checked_at on public.domains (checked_at);
 
--- Per-IP request log for rate limiting. `weight` is 1 per request, or the number
--- of queued (uncached) domains for kind 'rows'.
+-- Per-IP request log for rate limiting. `weight` is 1 per request, the number
+-- of queued (uncached) domains for kind 'rows', or of stored url rows for 'stored'.
 create table if not exists public.check_requests (
   id         bigint generated always as identity primary key,
   ip         text not null,
-  kind       text not null default 'check' check (kind in ('check', 'export', 'rows')),
+  kind       text not null default 'check' check (kind in ('check', 'export', 'rows', 'stored')),
   weight     integer not null default 1 check (weight > 0),
   created_at timestamptz not null default now()
 );
@@ -229,7 +229,8 @@ $$;
 -- ----------------------------------------------------------------------------
 -- Rate limiting: records the request with its weight and returns true, or
 -- returns false if it would take the IP's weights of that kind within the
--- window past p_limit. p_window_seconds must stay under 1 day (cleanup cron).
+-- window past p_limit. p_window_seconds must stay at or under 1 day (the
+-- cleanup cron keeps 2 days).
 -- ----------------------------------------------------------------------------
 
 create or replace function public.register_check_request(
@@ -586,14 +587,23 @@ set public = excluded.public,
     allowed_mime_types = excluded.allowed_mime_types;
 
 -- ----------------------------------------------------------------------------
--- pg_cron: hourly cleanup of the rate-limit log
+-- pg_cron: hourly cleanup of the rate-limit log, daily results retention
 -- ----------------------------------------------------------------------------
 
 select cron.unschedule(jobid) from cron.job where jobname = 'check-requests-cleanup';
 select cron.schedule(
   'check-requests-cleanup',
   '0 * * * *',
-  $$delete from public.check_requests where created_at < now() - interval '1 day'$$
+  $$delete from public.check_requests where created_at < now() - interval '2 days'$$
+);
+
+-- results links expire after 7 days (utils/recentChecks.ts RESULTS_KEPT_DAYS);
+-- url rows go with their batch (on delete cascade)
+select cron.unschedule(jobid) from cron.job where jobname = 'batches-retention';
+select cron.schedule(
+  'batches-retention',
+  '23 3 * * *',
+  $$delete from public.batches where created_at < now() - interval '7 days'$$
 );
 
 -- pg_cron never trims its own run log; the 10 s backstop alone adds ~10,000 rows a day

@@ -5,6 +5,7 @@ import {
   historyWriteFor,
   isExhausted,
   classifyAhrefsResponse,
+  planDomain,
   urlUpdateFor,
 } from "../supabase/functions/process-queue/outcome";
 import { NO_DATA_MESSAGE, type DomainCacheRow } from "../supabase/functions/_shared/cache";
@@ -123,5 +124,26 @@ describe("historyWriteFor", () => {
   it("never records no_data or transient results", () => {
     expect(historyWriteFor({ kind: "no_data" })).toBeNull();
     expect(historyWriteFor({ kind: "transient", error: "Ahrefs HTTP 429" })).toBeNull();
+  });
+});
+
+describe("planDomain", () => {
+  const fresh: DomainCacheRow = { domain: "a.com", dr: 40, status: "ok", checked_at: "2026-10-01T00:00:00.000Z" };
+  const rows = [
+    { id: "r1", attempts: 1 },
+    { id: "r2", attempts: 4 },
+  ];
+
+  it("answers every row from a fresh cache entry, exhausted or not, with no Ahrefs call", () => {
+    expect(planDomain(rows, fresh, now)).toEqual({ fromCache: rows, gaveUp: [], live: [] });
+  });
+
+  it("finalizes exhausted rows without a call and fetches only the live ones", () => {
+    expect(planDomain(rows, staleOk, now)).toEqual({ fromCache: [], gaveUp: [rows[1]], live: [rows[0]] });
+    expect(planDomain(rows, null, now)).toEqual({ fromCache: [], gaveUp: [rows[1]], live: [rows[0]] });
+  });
+
+  it("never calls Ahrefs when every row is exhausted", () => {
+    expect(planDomain([rows[1]], null, now).live).toEqual([]);
   });
 });

@@ -1,5 +1,7 @@
 export const RECENT_KEY = "dr-recent-checks";
 export const RECENT_MAX = 20;
+// the server deletes batches after this many days (cron `batches-retention`)
+export const RESULTS_KEPT_DAYS = 7;
 
 export interface RecentCheck {
   batchId: string;
@@ -23,14 +25,18 @@ function isRecent(v: unknown): v is RecentCheck {
   );
 }
 
-export function readRecent(storage: StorageLike | null): RecentCheck[] {
+export function readRecent(storage: StorageLike | null, now = new Date()): RecentCheck[] {
   if (!storage) return [];
   try {
     const raw = storage.getItem(RECENT_KEY);
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isRecent).slice(0, RECENT_MAX);
+    const cutoff = now.getTime() - RESULTS_KEPT_DAYS * 24 * 60 * 60 * 1000;
+    return parsed
+      .filter(isRecent)
+      .filter((e) => Date.parse(e.createdAt) > cutoff)
+      .slice(0, RECENT_MAX);
   } catch {
     return [];
   }

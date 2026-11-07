@@ -9,7 +9,7 @@
 // ./outcome.ts; table triggers roll batch progress up and broadcast changes.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { cachedUrlFields, isFresh, type DomainCacheRow } from "../_shared/cache.ts";
+import { cachedUrlFields, type DomainCacheRow } from "../_shared/cache.ts";
 import type { Database, TablesUpdate } from "../_shared/database.types.ts";
 import { checkWorkerSecret } from "../_shared/auth.ts";
 import {
@@ -25,7 +25,7 @@ import {
   classifyAhrefsResponse,
   GAVE_UP_MESSAGE,
   historyWriteFor,
-  isExhausted,
+  planDomain,
   urlUpdateFor,
   type AhrefsResult,
 } from "./outcome.ts";
@@ -84,18 +84,13 @@ async function processBatch(rows: ClaimedRow[], pace: () => Promise<void>) {
 
   for (const [domain, domainRows] of byDomain) {
     const previous = cache.get(domain) ?? null;
+    const { fromCache, gaveUp, live } = planDomain(domainRows, previous, new Date());
 
-    if (previous && isFresh(previous, new Date())) {
-      for (const row of domainRows) writes.push(updateUrl(row.id, cachedUrlFields(previous)));
-      continue;
+    for (const row of fromCache) writes.push(updateUrl(row.id, cachedUrlFields(previous!)));
+    for (const row of gaveUp) {
+      const result: AhrefsResult = { kind: "transient", error: GAVE_UP_MESSAGE };
+      writes.push(updateUrl(row.id, urlUpdateFor(result, row.attempts, previous, new Date())));
     }
-
-    const exhausted = domainRows.filter((row) => isExhausted(row.attempts));
-    for (const row of exhausted) {
-      const gaveUp: AhrefsResult = { kind: "transient", error: GAVE_UP_MESSAGE };
-      writes.push(updateUrl(row.id, urlUpdateFor(gaveUp, row.attempts, previous, new Date())));
-    }
-    const live = domainRows.filter((row) => !isExhausted(row.attempts));
     if (live.length === 0) continue;
 
     await pace();

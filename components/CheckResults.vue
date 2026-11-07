@@ -23,11 +23,14 @@
         </p>
       </div>
 
-      <button v-if="batch.processed_urls"
-        class="mt-6 rounded-full bg-[#1d1d1f] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-black"
-        @click="download">
-        Download CSV
-      </button>
+      <div v-if="batch.processed_urls" class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <button
+          class="rounded-full bg-[#1d1d1f] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-black"
+          @click="download">
+          Download CSV
+        </button>
+        <p class="text-xs text-[#86868b]">Results are kept for {{ RESULTS_KEPT_DAYS }} days — download the CSV to keep them.</p>
+      </div>
 
       <div class="mt-8 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm">
         <div class="overflow-x-auto">
