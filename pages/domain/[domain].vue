@@ -130,6 +130,8 @@ async function recheck() {
   checkError.value = "";
   try {
     const res = await $fetch<CheckResponse>("/api/check", { method: "POST", body: { domains: param.domain } });
+    track("check_submitted", { source: "typed", rows: res.total });
+    noteSubmitted(res.batchId, res.total);
     checkId.value = res.batchId;
   } catch (e: any) {
     checkError.value = e?.data?.statusMessage ?? "Check failed. Please try again.";

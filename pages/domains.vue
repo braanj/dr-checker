@@ -167,11 +167,12 @@ async function exportSelected() {
   if (exporting.value || selection.value.size === 0) return;
   exporting.value = true;
   exportMessage.value = "";
+  const domains = [...selection.value];
   try {
     const res = await fetch("/api/domains/export", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ domains: [...selection.value] }),
+      body: JSON.stringify({ domains }),
     });
     if (res.status === 429) {
       exportMessage.value = "Too many exports. Try again in a minute.";
@@ -191,6 +192,7 @@ async function exportSelected() {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+    track("directory_export", { count: domains.length });
   } catch {
     exportMessage.value = "Export failed. Please try again.";
   } finally {

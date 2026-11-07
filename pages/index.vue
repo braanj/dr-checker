@@ -151,6 +151,8 @@ async function onSubmit() {
     }
 
     const res = await $fetch<CheckResponse>("/api/check", { method: "POST", body });
+    track("check_submitted", { source: mode.value, rows: res.total });
+    noteSubmitted(res.batchId, res.total);
 
     if (res.skipped) infoMsg.value = `Skipped ${res.skipped} entr${res.skipped === 1 ? "y" : "ies"} that weren't valid domains.`;
 
