@@ -23,6 +23,7 @@ export type AhrefsResult =
 
 export function classifyAhrefsResponse(httpStatus: number, body: unknown): AhrefsResult {
   if (httpStatus !== 200) return { kind: "transient", error: `Ahrefs HTTP ${httpStatus}` };
+  if (body == null) return { kind: "transient", error: "Ahrefs HTTP 200 with an unreadable body" };
   // Response shape: { domain_rating: { domain_rating: number, ... } } per Ahrefs docs
   const data = body as any;
   const dr = data?.domain_rating?.domain_rating ?? data?.domain_rating;
