@@ -243,7 +243,12 @@ function onSortSelect(e: Event) {
   if (o) return update({ sortBy: o.sortBy, sortDir: o.sortDir });
 }
 
-const checkableDomain = computed(() => normalizeDomain(state.value.domain));
+// Only a bare domain search is a "not in the directory" signal; with other filters
+// active, the domain may be listed and merely filtered out.
+const checkableDomain = computed(() => {
+  const { domain, tld, drMin, drMax, checkedFrom, checkedTo } = state.value;
+  return tld || drMin || drMax || checkedFrom || checkedTo ? null : normalizeDomain(domain);
+});
 const checking = ref(false);
 const checkError = ref("");
 
