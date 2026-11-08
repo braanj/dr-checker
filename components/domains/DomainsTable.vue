@@ -7,15 +7,15 @@
           <th scope="col" :aria-sort="ariaSort('domain')">
             <button type="button" :class="sortBtn" @click="emit('sort', 'domain')">Domain <span aria-hidden="true">{{ arrow("domain") }}</span></button>
           </th>
-          <th scope="col" :aria-sort="ariaSort('dr')" class="w-24 text-right">
+          <th scope="col" :aria-sort="ariaSort('dr')" class="w-24 text-right" :title="HINTS.dr">
             <button type="button" :class="[sortBtn, 'ml-auto']" @click="emit('sort', 'dr')">DR <span aria-hidden="true">{{ arrow("dr") }}</span></button>
           </th>
-          <th scope="col" :aria-sort="ariaSort('dr_change')" class="w-14 text-right">
+          <th scope="col" :aria-sort="ariaSort('dr_change')" class="w-14 text-right" :title="HINTS.change">
             <button type="button" :class="[sortBtn, 'ml-auto']" @click="emit('sort', 'dr_change')">Δ <span aria-hidden="true">{{ arrow("dr_change") }}</span></button>
           </th>
           <th scope="col">Title</th>
-          <th scope="col" class="hidden w-20 lg:table-cell">Trend</th>
-          <th scope="col" :aria-sort="ariaSort('checked_at')" class="w-24 text-right">
+          <th scope="col" class="hidden w-20 lg:table-cell" :title="HINTS.trend">Trend</th>
+          <th scope="col" :aria-sort="ariaSort('checked_at')" class="w-24 text-right" :title="HINTS.checked">
             <button type="button" :class="[sortBtn, 'ml-auto']" @click="emit('sort', 'checked_at')">Checked <span aria-hidden="true">{{ arrow("checked_at") }}</span></button>
           </th>
         </tr>
@@ -68,13 +68,13 @@
           <p class="truncate text-[11px] text-[#6e6e73]">
             <ClientOnly>
               <template #fallback>{{ isoDate(row.checked_at) }}</template>
-              {{ checkedAgo(row.checked_at) }}
+              <span :title="isoDate(row.checked_at)">{{ checkedAgo(row.checked_at) }}</span>
             </ClientOnly>
             <template v-if="row.title"> · <span :title="row.title">{{ row.title }}</span></template>
           </p>
         </div>
         <div class="shrink-0 text-right tabular-nums">
-          <p v-if="row.dr !== null" class="font-medium">DR {{ formatDr(Number(row.dr)) }}</p>
+          <p v-if="row.dr !== null" class="font-medium" :title="HINTS.dr">DR {{ formatDr(Number(row.dr)) }}</p>
           <p v-else class="text-[#6e6e73]">—</p>
           <DomainsDrDelta :change="row.dr_change" class="text-[11px]" />
         </div>

@@ -1,5 +1,5 @@
 <template>
-  <span class="block h-1.5 w-10 overflow-hidden bg-black/10" aria-hidden="true">
+  <span class="block h-1.5 w-10 overflow-hidden bg-black/10" aria-hidden="true" :title="`DR ${value} of 100`">
     <span class="block h-full" :class="color" :style="{ width: `${width}%` }" />
   </span>
 </template>

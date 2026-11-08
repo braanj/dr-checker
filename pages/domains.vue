@@ -76,6 +76,7 @@
               <input
                 type="checkbox"
                 aria-label="Select all domains on this page"
+                :title="HINTS.selectAll"
                 class="h-3.5 w-3.5 cursor-pointer align-middle accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 :checked="pageState === 'all'"
                 :indeterminate="pageState === 'some'"

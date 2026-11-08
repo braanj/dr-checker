@@ -9,21 +9,21 @@
       </div>
 
       <dl class="grid max-w-3xl grid-cols-[7rem_minmax(0,1fr)] border border-b-0 border-[#ccc] sm:grid-cols-[7rem_minmax(0,1fr)_7rem_minmax(0,1fr)]">
-        <dt class="border-b border-[#e3e3e3] bg-[#f3f3f3] px-1.5 py-[3px] text-[#555]">Domain Rating</dt>
+        <dt class="border-b border-[#e3e3e3] bg-[#f3f3f3] px-1.5 py-[3px] text-[#555]" :title="HINTS.dr">Domain Rating</dt>
         <dd class="min-w-0 border-b border-[#e3e3e3] px-1.5 py-[3px] [overflow-wrap:anywhere] flex items-center gap-2">
           <span class="text-[15px] font-semibold tabular-nums">{{ formatDr(view.dr) }}</span>
           <DomainsDrDelta v-if="drChange !== null" :change="drChange" />
         </dd>
         <dt class="border-b border-[#e3e3e3] bg-[#f3f3f3] px-1.5 py-[3px] text-[#555]">Checked</dt>
         <dd class="min-w-0 border-b border-[#e3e3e3] px-1.5 py-[3px] [overflow-wrap:anywhere]">
-          <ClientOnly>{{ checkedAgo(view.checked_at) }}<template #fallback>on {{ isoDate(view.checked_at) }}</template></ClientOnly>
+          <ClientOnly><span :title="isoDate(view.checked_at)">{{ checkedAgo(view.checked_at) }}</span><template #fallback>on {{ isoDate(view.checked_at) }}</template></ClientOnly>
         </dd>
         <template v-if="view.meta?.title">
           <dt class="border-b border-[#e3e3e3] bg-[#f3f3f3] px-1.5 py-[3px] text-[#555]">Title</dt>
           <dd class="min-w-0 border-b border-[#e3e3e3] px-1.5 py-[3px] [overflow-wrap:anywhere]">{{ view.meta.title }}</dd>
         </template>
         <template v-if="nextRecheck">
-          <dt class="border-b border-[#e3e3e3] bg-[#f3f3f3] px-1.5 py-[3px] text-[#555]">Next re-check</dt>
+          <dt class="border-b border-[#e3e3e3] bg-[#f3f3f3] px-1.5 py-[3px] text-[#555]" :title="HINTS.nextRecheck">Next re-check</dt>
           <dd class="min-w-0 border-b border-[#e3e3e3] px-1.5 py-[3px] [overflow-wrap:anywhere]">around {{ nextRecheck }}</dd>
         </template>
         <template v-if="view.meta?.description">
@@ -38,6 +38,7 @@
         <h2 class="panel-label">DR over time</h2>
         <svg v-if="days.length > 1" class="mt-1 h-16 w-full border border-[#e3e3e3]" viewBox="0 0 300 60" preserveAspectRatio="none"
           role="img" :aria-label="`DR history for ${view.domain}`">
+          <title>{{ `DR history for ${view.domain}, oldest to newest` }}</title>
           <path :d="sparklinePath([...days].reverse().map((h) => h.dr), 300, 60)" fill="none"
             stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke" class="text-accent" />
         </svg>
@@ -45,8 +46,8 @@
           <thead>
             <tr>
               <th scope="col">Checked</th>
-              <th scope="col" class="text-right">DR</th>
-              <th scope="col" class="text-right">Δ</th>
+              <th scope="col" class="text-right" :title="HINTS.dr">DR</th>
+              <th scope="col" class="text-right" :title="HINTS.change">Δ</th>
             </tr>
           </thead>
           <tbody>
