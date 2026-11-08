@@ -55,7 +55,7 @@ export interface DomainsState {
 
 export const DEFAULT_STATE: DomainsState = {
   page: 1,
-  pageSize: 20,
+  pageSize: 50,
   sortBy: "checked_at",
   sortDir: "desc",
   domain: "",
@@ -94,7 +94,7 @@ export function parseDomainsRoute(q: Record<string, unknown>): DomainsState {
   const sortDir = str(q.sortDir);
   return {
     page,
-    pageSize: size === 50 || size === 100 ? size : 20,
+    pageSize: size === 20 || size === 50 || size === 100 ? size : DEFAULT_STATE.pageSize,
     sortBy: SORTS.includes(sortBy) ? (sortBy as SortBy) : DEFAULT_STATE.sortBy,
     sortDir: sortDir === "asc" || sortDir === "desc" ? sortDir : DEFAULT_STATE.sortDir,
     domain: str(q.domain),

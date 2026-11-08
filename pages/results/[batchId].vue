@@ -1,6 +1,6 @@
 <template>
-  <div class="mx-auto max-w-3xl px-4 py-16">
-    <NuxtLink to="/" class="text-sm text-[#6e6e73] transition-colors hover:text-accent">← New check</NuxtLink>
+  <div class="px-3 py-2">
+    <NuxtLink to="/" class="rounded-sm text-[#6e6e73] hover:text-[#1d1d1f] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">← New check</NuxtLink>
     <CheckResults :batch-id="batchId" />
   </div>
 </template>

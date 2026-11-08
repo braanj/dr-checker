@@ -1,80 +1,72 @@
 <template>
   <div id="check-results" role="region" tabindex="-1" aria-label="Check results" class="focus:outline-none">
-    <div v-if="loading" class="mt-6 text-[#6e6e73]">Loading results…</div>
-    <div v-else-if="error" class="mt-6 text-red-600">{{ error }}</div>
+    <div v-if="loading" class="mt-2 text-[#6e6e73]">Loading results…</div>
+    <div v-else-if="error" class="mt-2 text-red-600">{{ error }}</div>
 
     <template v-else-if="batch">
-      <h1 v-if="showTitle" class="mt-4 text-3xl font-semibold tracking-tight text-[#1d1d1f]">{{ batch.filename }}</h1>
+      <h1 v-if="showTitle" class="mt-1 [overflow-wrap:anywhere] text-[15px] font-semibold text-[#1d1d1f]">{{ batch.filename }}</h1>
 
-      <div class="mt-6 rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
-        <div class="flex justify-between text-sm text-[#6e6e73] mb-2">
-          <span role="status">{{ statusLabel }}</span>
-          <span>{{ batch.processed_urls }} / {{ batch.total_urls }}</span>
+      <div class="mt-2 rounded-sm border border-[#ccc] bg-[#f3f3f3] px-2 py-1.5">
+        <div class="flex flex-wrap items-center gap-x-3 text-[#555]">
+          <span role="status" class="font-semibold text-[#1d1d1f]">{{ statusLabel }}</span>
+          <span class="tabular-nums">{{ batch.processed_urls }} / {{ batch.total_urls }}</span>
+          <span v-if="batch.created_at">Started {{ new Date(batch.created_at).toLocaleString() }}</span>
         </div>
-        <p v-if="batch.created_at" class="-mt-1 mb-2 text-xs text-[#6e6e73]">
-          Started {{ new Date(batch.created_at).toLocaleString() }}
-        </p>
-        <div class="h-1.5 w-full overflow-hidden rounded-full bg-black/5">
-          <div class="h-full rounded-full transition-all duration-300"
+        <div class="mt-1 h-1 w-full overflow-hidden bg-[#ddd]">
+          <div class="h-full transition-all duration-300"
             :class="batch.status === 'failed' ? 'bg-red-500' : 'bg-accent'" :style="{ width: progressPct + '%' }" />
         </div>
-        <p v-if="batch.status === 'failed'" class="mt-3 text-sm text-red-600">
+        <p v-if="batch.status === 'failed'" class="mt-1 text-[#b3261e]">
           None of these domains could be checked — see the errors below.
         </p>
       </div>
 
-      <div v-if="batch.processed_urls" class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <button
-          class="rounded-full bg-[#1d1d1f] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-black"
-          @click="download">
-          Download CSV
-        </button>
-        <p class="text-xs text-[#6e6e73]">Results are kept for {{ RESULTS_KEPT_DAYS }} days — download the CSV to keep them.</p>
+      <div v-if="batch.processed_urls" class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <button type="button" class="btn-sm btn-primary" @click="download">Download CSV</button>
+        <p class="text-[11px] text-[#6e6e73]">Results are kept for {{ RESULTS_KEPT_DAYS }} days — download the CSV to keep them.</p>
       </div>
 
-      <div class="mt-8 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm">
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm border-collapse" :class="{ 'sm:min-w-[560px]': showUrl }">
-            <thead>
-              <tr class="text-left text-[#6e6e73] border-b border-black/5">
-                <th v-if="showUrl" class="hidden py-3 px-4 font-medium sm:table-cell">URL</th>
-                <th class="py-3 px-4 font-medium">Domain</th>
-                <th class="py-3 px-4 font-medium">DR</th>
-                <th class="py-3 px-4 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in sortedUrls" :key="row.id"
-                class="border-b border-black/5 last:border-0 transition-colors hover:bg-black/[0.02]">
-                <td v-if="showUrl" class="hidden py-2.5 px-4 truncate max-w-[220px] sm:table-cell" :title="row.original_url">{{ row.original_url }}</td>
-                <td class="py-2.5 px-4">
-                  <NuxtLink :to="domainPath(row.domain)"
-                    class="rounded text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">{{ row.domain }}</NuxtLink>
-                </td>
-                <td class="py-2.5 px-4">
-                  <span class="font-medium">{{ row.dr ?? "—" }}</span>
-                  <span v-if="sourceBadge(row)" :class="sourceBadge(row)!.class" :title="sourceBadge(row)!.title"
-                    class="ml-2 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium">
-                    {{ sourceBadge(row)!.label }}
-                  </span>
-                  <div v-if="row.checked_at && row.dr !== null" class="text-xs text-[#6e6e73]">
-                    checked {{ checkedAgo(row.checked_at) }}
-                  </div>
-                </td>
-                <td class="py-2.5 px-4">
-                  <span v-if="retryInfo(row)" class="inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800"
-                    :title="row.error_message ?? undefined">
-                    retrying <small>· attempt {{ retryInfo(row)!.attempt }} of {{ retryInfo(row)!.of }}</small>
-                  </span>
-                  <span v-else :class="statusBadgeClass(row.status)">{{ row.status }} <small v-if="row.status === 'error'">
-                      ({{ row.error_message }})
-                    </small>
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="mt-2 overflow-x-auto">
+        <table class="data-table" :class="{ 'sm:min-w-[560px]': showUrl }">
+          <thead>
+            <tr>
+              <th v-if="showUrl" class="hidden sm:table-cell">URL</th>
+              <th>Domain</th>
+              <th class="text-right">DR</th>
+              <th>Status</th>
+              <th>Checked</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in sortedUrls" :key="row.id">
+              <td v-if="showUrl" class="hidden max-w-[220px] truncate sm:table-cell" :title="row.original_url">{{ row.original_url }}</td>
+              <td>
+                <NuxtLink :to="domainPath(row.domain)"
+                  class="rounded-sm text-[#0058b0] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">{{ row.domain }}</NuxtLink>
+              </td>
+              <td class="whitespace-nowrap text-right tabular-nums">
+                <span v-if="sourceBadge(row)" :class="sourceBadge(row)!.class" :title="sourceBadge(row)!.title"
+                  class="mr-1.5 inline-block rounded-sm px-1 text-[10px] font-medium">
+                  {{ sourceBadge(row)!.label }}
+                </span>
+                <span class="font-medium">{{ row.dr ?? "—" }}</span>
+              </td>
+              <td>
+                <span v-if="retryInfo(row)" class="inline-block rounded-sm bg-amber-100 px-1 text-[11px] font-medium text-amber-800"
+                  :title="row.error_message ?? undefined">
+                  retrying <small>· attempt {{ retryInfo(row)!.attempt }} of {{ retryInfo(row)!.of }}</small>
+                </span>
+                <span v-else :class="statusBadgeClass(row.status)">{{ row.status }} <small v-if="row.status === 'error'">
+                    ({{ row.error_message }})
+                  </small>
+                </span>
+              </td>
+              <td class="whitespace-nowrap text-[#6e6e73]">
+                <template v-if="row.checked_at && row.dr !== null">{{ checkedAgo(row.checked_at) }}</template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </template>
   </div>
@@ -120,25 +112,25 @@ const statusLabel = computed(() => {
 });
 
 function statusBadgeClass(status: string) {
-  const base = "inline-block rounded-full px-2.5 py-0.5 text-xs font-medium";
+  const base = "inline-block rounded-sm px-1 text-[11px] font-medium";
   switch (status) {
     case "done":
       return `${base} bg-green-100 text-green-700`;
     case "error":
       return `${base} bg-red-100 text-red-700`;
     case "processing":
-      return `${base} bg-accent-light text-accent`;
+      return `${base} bg-accent-light text-[#0058b0]`;
     default:
-      return `${base} bg-black/5 text-[#6e6e73]`;
+      return `${base} bg-black/5 text-[#555]`;
   }
 }
 
 function sourceBadge(row: UrlRow) {
   switch (row.source) {
     case "live":
-      return { label: "live", class: "bg-accent-light text-accent", title: "Fetched from Ahrefs just now" };
+      return { label: "live", class: "bg-accent-light text-[#0058b0]", title: "Fetched from Ahrefs just now" };
     case "cache":
-      return { label: "cached", class: "bg-black/5 text-[#6e6e73]", title: "From the directory (checked in the last 30 days)" };
+      return { label: "cached", class: "bg-black/5 text-[#555]", title: "From the directory (checked in the last 30 days)" };
     case "stale":
       return { label: "stale", class: "bg-amber-100 text-amber-800", title: "No new DR from Ahrefs; showing the last known one" };
     default:

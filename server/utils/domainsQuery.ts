@@ -55,7 +55,7 @@ function parseDate(value: unknown): string | null {
 export function parseDomainsQuery(q: Record<string, unknown>): DomainsQuery {
   const page = Math.max(1, parseInt((q.page as string) ?? "1", 10) || 1);
 
-  const rawSize = typeof q.pageSize === "string" ? q.pageSize.trim() : "20";
+  const rawSize = typeof q.pageSize === "string" ? q.pageSize.trim() : "50";
   const pageSize = Number(rawSize);
   if (!(PAGE_SIZES as readonly number[]).includes(pageSize)) {
     throw new DomainsQueryError(`Invalid pageSize: ${rawSize}`);

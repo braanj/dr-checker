@@ -1,42 +1,38 @@
 <template>
-  <div class="space-y-3">
-    <div class="flex flex-wrap items-center gap-2">
-      <input
-        v-model="domain"
-        type="search"
-        placeholder="Search domains"
-        aria-label="Search domains"
-        :class="[field, 'min-w-0 flex-1 basis-48']"
-        @input="schedule"
-      />
-      <div class="flex items-center gap-1.5">
-        <input v-model="drMin" type="number" min="0" max="100" inputmode="numeric" placeholder="DR min" aria-label="Minimum DR" :class="[field, 'w-24']" @input="schedule" />
-        <span class="text-[#6e6e73]" aria-hidden="true">–</span>
-        <input v-model="drMax" type="number" min="0" max="100" inputmode="numeric" placeholder="DR max" aria-label="Maximum DR" :class="[field, 'w-24']" @input="schedule" />
+  <div class="space-y-2">
+    <label class="block">
+      <span class="panel-label">Search domains</span>
+      <input v-model="domain" type="search" placeholder="example.com" class="input-sm mt-0.5 w-full" @input="schedule" />
+    </label>
+    <label class="block">
+      <span class="panel-label">TLD</span>
+      <input v-model="tld" type="text" placeholder=".com" class="input-sm mt-0.5 w-full" @input="schedule" />
+    </label>
+    <div>
+      <p class="panel-label" aria-hidden="true">DR min / max</p>
+      <div class="mt-0.5 flex items-center gap-1">
+        <input v-model="drMin" type="number" min="0" max="100" inputmode="numeric" placeholder="0" aria-label="Minimum DR" class="input-sm w-full min-w-0" @input="schedule" />
+        <span class="text-[#555]" aria-hidden="true">–</span>
+        <input v-model="drMax" type="number" min="0" max="100" inputmode="numeric" placeholder="100" aria-label="Maximum DR" class="input-sm w-full min-w-0" @input="schedule" />
       </div>
-      <input v-model="tld" type="text" placeholder=".tld" aria-label="TLD" :class="[field, 'w-24']" @input="schedule" />
     </div>
+    <label class="block">
+      <span class="panel-label">Checked from</span>
+      <input type="date" :value="state.checkedFrom" class="input-sm mt-0.5 w-full" @change="emit('update', { checkedFrom: ($event.target as HTMLInputElement).value })" />
+    </label>
+    <label class="block">
+      <span class="panel-label">Checked to</span>
+      <input type="date" :value="state.checkedTo" class="input-sm mt-0.5 w-full" @change="emit('update', { checkedTo: ($event.target as HTMLInputElement).value })" />
+    </label>
 
-    <details class="text-sm text-[#6e6e73]" :open="!!(state.checkedFrom || state.checkedTo) || undefined">
-      <summary class="w-fit cursor-pointer rounded-md hover:text-[#1d1d1f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">More filters</summary>
-      <div class="mt-2 flex flex-wrap gap-3">
-        <label class="flex items-center gap-2">Checked from
-          <input type="date" :value="state.checkedFrom" :class="field" @change="emit('update', { checkedFrom: ($event.target as HTMLInputElement).value })" />
-        </label>
-        <label class="flex items-center gap-2">to
-          <input type="date" :value="state.checkedTo" :class="field" @change="emit('update', { checkedTo: ($event.target as HTMLInputElement).value })" />
-        </label>
-      </div>
-    </details>
-
-    <ul v-if="chips.length" class="flex flex-wrap items-center gap-2" aria-label="Active filters">
+    <ul v-if="chips.length" class="flex flex-wrap items-center gap-1 border-t border-[#ccc] pt-2" aria-label="Active filters">
       <li v-for="c in chips" :key="c.key">
-        <button type="button" :class="chip" :aria-label="`Remove filter ${c.label}`" @click="emit('update', c.clear)">
+        <button type="button" class="inline-flex items-center gap-1 rounded-sm border border-[#bbb] bg-white px-1.5 py-px text-[11px] text-[#1d1d1f] hover:bg-[#f0f0f0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" :aria-label="`Remove filter ${c.label}`" @click="emit('update', c.clear)">
           {{ c.label }} <span aria-hidden="true">✕</span>
         </button>
       </li>
       <li>
-        <button type="button" class="rounded-md px-1 text-sm text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" @click="emit('clear')">Clear all</button>
+        <button type="button" class="rounded-sm px-1 text-[11px] text-[#1d1d1f] underline hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" @click="emit('clear')">Clear all</button>
       </li>
     </ul>
   </div>
@@ -47,11 +43,6 @@ import type { DomainsState } from "~/utils/domainsTable";
 
 const props = defineProps<{ state: DomainsState }>();
 const emit = defineEmits<{ update: [patch: Partial<DomainsState>]; clear: [] }>();
-
-const field =
-  "rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-[#1d1d1f] placeholder:text-[#86868b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
-const chip =
-  "inline-flex items-center gap-1.5 rounded-full bg-accent-light px-3 py-1 text-sm text-accent hover:bg-accent/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
 
 const domain = ref(props.state.domain);
 const tld = ref(props.state.tld);

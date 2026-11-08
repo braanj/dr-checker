@@ -1,61 +1,51 @@
 <template>
   <div>
-    <!-- md+: table -->
-    <table class="hidden w-full text-left text-sm md:table">
-      <thead class="sticky top-0 z-10 bg-white text-xs text-[#6e6e73]">
-        <tr class="border-b border-black/5">
-          <th scope="col" class="w-10 py-3 pl-4"><slot name="select-header" /></th>
-          <th scope="col" :aria-sort="ariaSort('domain')" class="px-3 py-3 font-medium">
+    <table class="data-table hidden md:table">
+      <thead class="sticky top-0 z-10 [&_th]:shadow-[inset_0_-1px_0_#ccc]">
+        <tr>
+          <th scope="col" class="w-7 text-center"><slot name="select-header" /></th>
+          <th scope="col" :aria-sort="ariaSort('domain')">
             <button type="button" :class="sortBtn" @click="emit('sort', 'domain')">Domain <span aria-hidden="true">{{ arrow("domain") }}</span></button>
           </th>
-          <th scope="col" :aria-sort="ariaSort('dr')" class="px-3 py-3 text-right font-medium">
+          <th scope="col" :aria-sort="ariaSort('dr')" class="w-24 text-right">
             <button type="button" :class="[sortBtn, 'ml-auto']" @click="emit('sort', 'dr')">DR <span aria-hidden="true">{{ arrow("dr") }}</span></button>
           </th>
-          <th scope="col" :aria-sort="ariaSort('dr_change')" class="px-3 py-3 text-right font-medium">
+          <th scope="col" :aria-sort="ariaSort('dr_change')" class="w-14 text-right">
             <button type="button" :class="[sortBtn, 'ml-auto']" @click="emit('sort', 'dr_change')">Δ <span aria-hidden="true">{{ arrow("dr_change") }}</span></button>
           </th>
-          <th scope="col" class="hidden px-3 py-3 font-medium lg:table-cell">Trend</th>
-          <th scope="col" :aria-sort="ariaSort('checked_at')" class="py-3 pl-3 pr-4 text-right font-medium">
+          <th scope="col">Title</th>
+          <th scope="col" class="hidden w-20 lg:table-cell">Trend</th>
+          <th scope="col" :aria-sort="ariaSort('checked_at')" class="w-24 text-right">
             <button type="button" :class="[sortBtn, 'ml-auto']" @click="emit('sort', 'checked_at')">Checked <span aria-hidden="true">{{ arrow("checked_at") }}</span></button>
           </th>
         </tr>
       </thead>
       <tbody>
         <template v-if="loading">
-          <tr v-for="n in 8" :key="`sk-${n}`" class="border-b border-black/5 last:border-0" aria-hidden="true">
-            <td v-for="c in 6" :key="c" class="px-3 py-4" :class="c === 5 ? 'hidden lg:table-cell' : ''"><div class="h-4 animate-pulse rounded bg-black/5" /></td>
+          <tr v-for="n in 12" :key="`sk-${n}`" aria-hidden="true">
+            <td v-for="c in 7" :key="c" :class="c === 6 ? 'hidden lg:table-cell' : ''"><div class="my-0.5 h-3 animate-pulse bg-black/5" /></td>
           </tr>
         </template>
-        <tr
-          v-for="row in rows"
-          v-else
-          :key="row.domain"
-          class="cursor-pointer border-b border-black/5 last:border-0 hover:bg-black/[0.03]"
-          @click="go(row.domain)"
-        >
-          <td class="w-10 py-3 pl-4" @click.stop><slot name="select-cell" :row="row" /></td>
-          <td class="max-w-0 px-3 py-3">
-            <div class="flex items-center gap-3">
-              <img v-if="row.favicon_url" :src="row.favicon_url" width="20" height="20" loading="lazy" alt="" class="h-5 w-5 shrink-0 rounded" />
-              <span v-else class="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/5 text-[11px] font-medium uppercase text-[#6e6e73]" aria-hidden="true">{{ row.domain.charAt(0) }}</span>
-              <div class="min-w-0">
-                <NuxtLink :to="domainPath(row.domain)" class="block truncate rounded font-medium text-[#1d1d1f] hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" @click.stop>{{ row.domain }}</NuxtLink>
-                <p v-if="row.title" class="truncate text-xs text-[#6e6e73]" :title="row.title">{{ row.title }}</p>
-              </div>
+        <tr v-for="row in rows" v-else :key="row.domain" class="cursor-pointer" @click="go(row.domain)">
+          <td class="text-center" @click.stop><slot name="select-cell" :row="row" /></td>
+          <td class="max-w-0">
+            <div class="flex items-center gap-1.5">
+              <img v-if="row.favicon_url" :src="row.favicon_url" width="14" height="14" loading="lazy" alt="" class="h-3.5 w-3.5 shrink-0" />
+              <span v-else class="flex h-3.5 w-3.5 shrink-0 items-center justify-center bg-black/10 text-[9px] font-medium uppercase text-[#333]" aria-hidden="true">{{ row.domain.charAt(0) }}</span>
+              <NuxtLink :to="domainPath(row.domain)" class="truncate rounded-sm font-medium text-[#1d1d1f] hover:text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" @click.stop>{{ row.domain }}</NuxtLink>
             </div>
           </td>
-          <td class="px-3 py-3 text-right tabular-nums">
-            <template v-if="row.dr !== null">
-              <span class="font-medium">{{ formatDr(Number(row.dr)) }}</span>
-              <DomainsDrBar :dr="row.dr" class="ml-auto mt-1" />
-            </template>
+          <td class="text-right tabular-nums">
+            <div v-if="row.dr !== null" class="flex items-center justify-end gap-1.5">
+              <DomainsDrBar :dr="row.dr" />
+              <span class="w-6 font-medium">{{ formatDr(Number(row.dr)) }}</span>
+            </div>
             <span v-else class="text-[#6e6e73]">—</span>
           </td>
-          <td class="px-3 py-3 text-right tabular-nums">
-            <DomainsDrDelta :change="row.dr_change" />
-          </td>
-          <td class="hidden px-3 py-3 lg:table-cell"><DomainsTrendSpark :values="row.trend" /></td>
-          <td class="whitespace-nowrap py-3 pl-3 pr-4 text-right tabular-nums text-[#6e6e73]">
+          <td class="text-right"><DomainsDrDelta :change="row.dr_change" /></td>
+          <td class="max-w-0 truncate text-[#555]" :title="row.title ?? undefined">{{ row.title }}</td>
+          <td class="hidden py-0 lg:table-cell"><DomainsTrendSpark :values="row.trend" class="block" /></td>
+          <td class="whitespace-nowrap text-right tabular-nums text-[#555]">
             <ClientOnly>
               <template #fallback>{{ isoDate(row.checked_at) }}</template>
               <span :title="isoDate(row.checked_at)">{{ checkedAgo(row.checked_at) }}</span>
@@ -65,29 +55,28 @@
       </tbody>
     </table>
 
-    <!-- < md: cards -->
-    <ul class="divide-y divide-black/5 md:hidden">
+    <ul class="md:hidden">
       <template v-if="loading">
-        <li v-for="n in 8" :key="`sk-${n}`" class="p-4" aria-hidden="true"><div class="h-10 animate-pulse rounded bg-black/5" /></li>
+        <li v-for="n in 12" :key="`sk-${n}`" class="border-b border-[#e3e3e3] px-2 py-1.5" aria-hidden="true"><div class="h-6 animate-pulse bg-black/5" /></li>
       </template>
-      <li v-for="row in rows" v-else :key="row.domain" class="flex items-center gap-3 p-4">
+      <li v-for="row in rows" v-else :key="row.domain" class="flex items-center gap-2 border-b border-[#e3e3e3] px-2 py-1 last:border-0 even:bg-[#f8f8f8]">
         <div class="empty:hidden"><slot name="select-card" :row="row" /></div>
-        <img v-if="row.favicon_url" :src="row.favicon_url" width="20" height="20" loading="lazy" alt="" class="h-5 w-5 shrink-0 rounded" />
-        <span v-else class="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-black/5 text-[11px] font-medium uppercase text-[#6e6e73]" aria-hidden="true">{{ row.domain.charAt(0) }}</span>
+        <img v-if="row.favicon_url" :src="row.favicon_url" width="14" height="14" loading="lazy" alt="" class="h-3.5 w-3.5 shrink-0" />
+        <span v-else class="flex h-3.5 w-3.5 shrink-0 items-center justify-center bg-black/10 text-[9px] font-medium uppercase text-[#333]" aria-hidden="true">{{ row.domain.charAt(0) }}</span>
         <div class="min-w-0 flex-1">
-          <NuxtLink :to="domainPath(row.domain)" class="block truncate rounded font-medium text-[#1d1d1f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">{{ row.domain }}</NuxtLink>
-          <p v-if="row.title" class="truncate text-xs text-[#6e6e73]" :title="row.title">{{ row.title }}</p>
-          <p class="mt-0.5 text-xs text-[#6e6e73]">
+          <NuxtLink :to="domainPath(row.domain)" class="block truncate rounded-sm font-medium text-[#1d1d1f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">{{ row.domain }}</NuxtLink>
+          <p class="truncate text-[11px] text-[#6e6e73]">
             <ClientOnly>
               <template #fallback>{{ isoDate(row.checked_at) }}</template>
               {{ checkedAgo(row.checked_at) }}
             </ClientOnly>
+            <template v-if="row.title"> · <span :title="row.title">{{ row.title }}</span></template>
           </p>
         </div>
         <div class="shrink-0 text-right tabular-nums">
           <p v-if="row.dr !== null" class="font-medium">DR {{ formatDr(Number(row.dr)) }}</p>
           <p v-else class="text-[#6e6e73]">—</p>
-          <DomainsDrDelta :change="row.dr_change" class="text-xs" />
+          <DomainsDrDelta :change="row.dr_change" class="text-[11px]" />
         </div>
       </li>
     </ul>
@@ -107,7 +96,7 @@ const props = defineProps<{
 const emit = defineEmits<{ sort: [col: SortBy] }>();
 
 const sortBtn =
-  "flex items-center gap-1 rounded-md px-1 py-0.5 hover:text-[#1d1d1f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
+  "flex items-center gap-1 rounded-sm hover:text-black hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
 
 function ariaSort(col: SortBy) {
   if (props.sortBy !== col) return "none";

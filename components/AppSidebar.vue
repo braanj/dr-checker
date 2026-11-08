@@ -1,14 +1,14 @@
 <template>
   <aside
-    class="flex h-full flex-col border-r border-black/5 bg-white"
-    :class="drawer ? 'w-64' : 'w-56 [html[data-sidebar=collapsed]_&]:w-16'"
+    class="flex h-full flex-col border-r border-[#ccc] bg-[#f3f3f3]"
+    :class="drawer ? 'w-56' : 'w-40 [html[data-sidebar=collapsed]_&]:w-11'"
   >
-    <NuxtLink to="/" aria-current="false" aria-label="DR Checker" class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent flex h-12 shrink-0 items-center gap-2 px-4 font-semibold tracking-tight">
-      <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent text-xs text-white">DR</span>
+    <NuxtLink to="/" aria-current="false" aria-label="DR Checker" class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent flex h-9 shrink-0 items-center gap-2 border-b border-[#ccc] px-3 text-[13px] font-semibold">
+      <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm bg-accent text-[10px] text-white">DR</span>
       <span :class="labelClass">DR Checker</span>
     </NuxtLink>
 
-    <nav aria-label="Main" class="flex-1 space-y-1 px-2 py-2">
+    <nav aria-label="Main" class="flex-1 space-y-px px-1.5 py-1.5">
       <NuxtLink
         v-for="item in items"
         :key="item.to"
@@ -16,33 +16,33 @@
         :title="item.label"
         :aria-label="item.label"
         :aria-current="active === item.section ? 'page' : undefined"
-        class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent flex h-10 items-center gap-3 rounded-xl px-3 text-sm transition-colors"
-        :class="active === item.section ? 'bg-accent-light font-medium text-accent' : 'text-[#1d1d1f]/80 hover:bg-black/5'"
+        class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent flex h-7 items-center gap-2 rounded-sm px-2 text-[12px]"
+        :class="active === item.section ? 'bg-[#e0e0e0] font-semibold text-[#1d1d1f]' : 'text-[#333] hover:bg-[#e6e6e6]'"
       >
-        <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path v-for="d in item.icon" :key="d" :d="d" />
         </svg>
         <span :class="labelClass">{{ item.label }}</span>
       </NuxtLink>
     </nav>
 
-    <div class="shrink-0 border-t border-black/5 p-2">
+    <div class="shrink-0 border-t border-[#ccc] p-1.5">
       <button
         v-if="!drawer"
         type="button"
-        class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent flex h-10 w-full items-center gap-3 rounded-xl px-3 text-sm text-[#6e6e73] transition-colors hover:bg-black/5"
+        class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent flex h-7 w-full items-center gap-2 rounded-sm px-2 text-[12px] text-[#555] hover:bg-[#e6e6e6]"
         :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
         :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
         @click="toggle"
       >
-        <svg class="h-5 w-5 shrink-0 [html[data-sidebar=collapsed]_&]:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg class="h-4 w-4 shrink-0 [html[data-sidebar=collapsed]_&]:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="m15 6-6 6 6 6" />
         </svg>
         <span :class="labelClass">Collapse</span>
       </button>
       <a
         href="https://github.com/braanj"
-        class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent block rounded-md px-3 py-2 text-xs leading-snug text-[#6e6e73] transition-colors hover:text-accent"
+        class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent block rounded-sm px-2 py-1 text-[11px] leading-snug text-[#555] hover:text-[#1d1d1f] hover:underline"
         :class="drawer ? '' : '[html[data-sidebar=collapsed]_&]:hidden'"
       >
         Developed with ❤️ by Brahim Anjjar

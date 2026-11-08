@@ -1,108 +1,120 @@
 <template>
-  <div class="px-4 pb-24 pt-10">
-    <div class="mx-auto max-w-5xl space-y-5">
-      <header class="flex items-baseline justify-between gap-3">
-        <h1 class="text-3xl font-semibold tracking-tight text-[#1d1d1f]">Domains</h1>
-        <p v-if="data" class="text-sm tabular-nums text-[#6e6e73]">{{ data.total }} {{ data.total === 1 ? "domain" : "domains" }}</p>
-      </header>
+  <div class="flex min-h-screen flex-col md:h-screen">
+    <header class="flex items-center gap-2 border-b border-[#ccc] px-3 py-1.5">
+      <h1 class="text-[15px] font-semibold text-[#1d1d1f]">Domains</h1>
+      <p v-if="data" class="tabular-nums text-[#6e6e73]">{{ data.total }} {{ data.total === 1 ? "domain" : "domains" }}</p>
+      <button
+        type="button"
+        class="btn-sm ml-auto md:hidden"
+        aria-controls="domain-filters"
+        :aria-expanded="filtersOpen"
+        @click="filtersOpen = !filtersOpen"
+      >
+        Filters<span v-if="activeFilters" class="tabular-nums"> ({{ activeFilters }})</span>
+      </button>
+    </header>
 
-      <DomainsToolbar :state="state" @update="update" @clear="clearFilters" />
+    <div class="flex-1 md:flex md:min-h-0">
+      <aside
+        id="domain-filters"
+        aria-label="Filters"
+        class="shrink-0 border-b border-[#ccc] bg-[#f3f3f3] p-2 md:block md:w-[150px] md:overflow-y-auto md:border-b-0 md:border-r"
+        :class="filtersOpen ? 'block' : 'hidden'"
+      >
+        <DomainsToolbar :state="state" @update="update" @clear="clearFilters" />
+      </aside>
 
-      <label class="flex items-center gap-2 text-sm text-[#6e6e73] md:hidden">
-        Sort by
-        <select
-          :value="sortIndex"
-          class="rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-[#1d1d1f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          @change="onSortSelect"
-        >
-          <option v-for="(o, i) in SORT_OPTIONS" :key="o.label" :value="i">{{ o.label }}</option>
-        </select>
-      </label>
+      <div class="min-w-0 flex-1 md:flex md:min-h-0 md:flex-col">
+        <label class="flex items-center gap-1.5 px-3 py-2 text-[#555] md:hidden">
+          Sort by
+          <select :value="sortIndex" class="input-sm" @change="onSortSelect">
+            <option v-for="(o, i) in SORT_OPTIONS" :key="o.label" :value="i">{{ o.label }}</option>
+          </select>
+        </label>
 
-      <div class="rounded-2xl border border-black/5 bg-white">
-        <div v-if="error && !data" class="p-10 text-center">
-          <p class="text-[15px] text-[#1d1d1f]">Couldn't load domains.</p>
-          <button type="button" class="mt-3 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" @click="() => refresh()">Retry</button>
+        <!-- relative: keeps the rows' absolutely positioned sr-only text inside the scroll box, so it can't stretch the page -->
+        <div ref="tableScroller" class="relative bg-white md:min-h-0 md:flex-1 md:overflow-auto">
+          <div v-if="error && !data" class="p-6 text-center">
+            <p>Couldn't load domains.</p>
+            <button type="button" class="btn-sm btn-primary mt-2" @click="() => refresh()">Retry</button>
+          </div>
+          <div v-else-if="data && data.total > 0 && data.domains.length === 0" class="p-6 text-center">
+            <p>This page is out of range.</p>
+            <button type="button" class="btn-sm btn-primary mt-2" @click="update({ page: 1 })">Go to page 1</button>
+          </div>
+          <div v-else-if="data && data.domains.length === 0" class="p-6 text-center">
+            <template v-if="hasFilters">
+              <p>No domains match these filters.</p>
+              <div class="mt-2 flex flex-wrap items-center justify-center gap-1.5">
+                <button
+                  v-if="checkableDomain"
+                  type="button"
+                  class="btn-sm btn-primary"
+                  :disabled="checking"
+                  @click="checkSearched"
+                >
+                  {{ checking ? "Checking…" : `Check ${checkableDomain} now` }}
+                </button>
+                <button type="button" class="btn-sm" :class="checkableDomain ? '' : 'btn-primary'" @click="clearFilters">
+                  Clear filters
+                </button>
+              </div>
+              <p v-if="checkError" role="alert" class="mt-2 text-red-600">{{ checkError }}</p>
+            </template>
+            <p v-else>No domains checked yet.</p>
+          </div>
+          <DomainsTable
+            v-else
+            :rows="data?.domains ?? []"
+            :loading="!data"
+            :sort-by="state.sortBy"
+            :sort-dir="state.sortDir"
+            :class="{ 'opacity-50': pending && data }"
+            @sort="onSort"
+          >
+            <template #select-header>
+              <input
+                type="checkbox"
+                aria-label="Select all domains on this page"
+                class="h-3.5 w-3.5 cursor-pointer align-middle accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                :checked="pageState === 'all'"
+                :indeterminate="pageState === 'some'"
+                @change="onTogglePage($event)"
+              />
+            </template>
+            <template #select-cell="{ row }">
+              <input type="checkbox" :aria-label="`Select ${row.domain}`" class="h-3.5 w-3.5 cursor-pointer align-middle accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" :checked="selection.has(row.domain)" @change="onToggle(row.domain, $event)" />
+            </template>
+            <template #select-card="{ row }">
+              <label class="-m-1 flex cursor-pointer p-1">
+                <input type="checkbox" :aria-label="`Select ${row.domain}`" class="h-3.5 w-3.5 cursor-pointer align-middle accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" :checked="selection.has(row.domain)" @change="onToggle(row.domain, $event)" />
+              </label>
+            </template>
+          </DomainsTable>
         </div>
-        <div v-else-if="data && data.total > 0 && data.domains.length === 0" class="p-10 text-center">
-          <p class="text-[15px] text-[#1d1d1f]">This page is out of range.</p>
-          <button type="button" class="mt-3 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" @click="update({ page: 1 })">Go to page 1</button>
+
+        <div v-if="(data && data.total > 0) || selection.size > 0" class="sticky bottom-0 z-20 space-y-1.5 border-t border-[#ccc] bg-white px-3 py-1.5">
+          <DomainsPager
+            v-if="data && data.total > 0"
+            :page="data.page"
+            :page-size="data.pageSize"
+            :total="data.total"
+            :total-pages="data.totalPages"
+            @page="(p) => update({ page: p })"
+            @page-size="(n) => update({ pageSize: n as DomainsState['pageSize'] })"
+          />
+
+          <DomainsSelectionBar
+            v-if="selection.size > 0"
+            :count="selection.size"
+            :exporting="exporting"
+            :capped="capped"
+            :message="exportMessage"
+            @clear="clearSelection"
+            @export="exportSelected"
+          />
         </div>
-        <div v-else-if="data && data.domains.length === 0" class="p-10 text-center">
-          <template v-if="hasFilters">
-            <p class="text-[15px] text-[#1d1d1f]">No domains match these filters.</p>
-            <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
-              <button
-                v-if="checkableDomain"
-                type="button"
-                class="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
-                :disabled="checking"
-                @click="checkSearched"
-              >
-                {{ checking ? "Checking…" : `Check ${checkableDomain} now` }}
-              </button>
-              <button
-                type="button"
-                class="rounded-full px-4 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                :class="checkableDomain ? 'border border-black/10 bg-white text-[#1d1d1f] hover:bg-black/5' : 'bg-accent text-white hover:bg-accent-hover'"
-                @click="clearFilters"
-              >
-                Clear filters
-              </button>
-            </div>
-            <p v-if="checkError" role="alert" class="mt-3 text-sm text-red-600">{{ checkError }}</p>
-          </template>
-          <p v-else class="text-[15px] text-[#1d1d1f]">No domains checked yet.</p>
-        </div>
-        <DomainsTable
-          v-else
-          :rows="data?.domains ?? []"
-          :loading="!data"
-          :sort-by="state.sortBy"
-          :sort-dir="state.sortDir"
-          :class="{ 'opacity-50': pending && data }"
-          @sort="onSort"
-        >
-          <template #select-header>
-            <input
-              type="checkbox"
-              aria-label="Select all domains on this page"
-              class="h-4 w-4 cursor-pointer rounded accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              :checked="pageState === 'all'"
-              :indeterminate="pageState === 'some'"
-              @change="onTogglePage($event)"
-            />
-          </template>
-          <template #select-cell="{ row }">
-            <input type="checkbox" :aria-label="`Select ${row.domain}`" class="h-4 w-4 cursor-pointer rounded accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" :checked="selection.has(row.domain)" @change="onToggle(row.domain, $event)" />
-          </template>
-          <template #select-card="{ row }">
-            <label class="-m-1 flex cursor-pointer p-1">
-              <input type="checkbox" :aria-label="`Select ${row.domain}`" class="h-4 w-4 cursor-pointer rounded accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" :checked="selection.has(row.domain)" @change="onToggle(row.domain, $event)" />
-            </label>
-          </template>
-        </DomainsTable>
       </div>
-
-      <DomainsPager
-        v-if="data && data.total > 0"
-        :page="data.page"
-        :page-size="data.pageSize"
-        :total="data.total"
-        :total-pages="data.totalPages"
-        @page="(p) => update({ page: p })"
-        @page-size="(n) => update({ pageSize: n as DomainsState['pageSize'] })"
-      />
-
-      <DomainsSelectionBar
-        v-if="selection.size > 0"
-        :count="selection.size"
-        :exporting="exporting"
-        :capped="capped"
-        :message="exportMessage"
-        @clear="clearSelection"
-        @export="exportSelected"
-      />
     </div>
   </div>
 </template>
@@ -132,6 +144,10 @@ const { data, pending, error, refresh } = await useFetch<DomainsResponse>("/api/
   query: computed(() => toRouteQuery(state.value)),
 });
 
+// The table scrolls in its own region on md+, so a new result set must start at its first row.
+const tableScroller = ref<HTMLElement | null>(null);
+watch(data, () => tableScroller.value?.scrollTo({ top: 0 }));
+
 // Mirror the /domain/* rule: CDN-cache only on success; a failed render is
 // 503 + no-store (no noindex, so a blip never de-indexes the page).
 if (import.meta.server) {
@@ -144,10 +160,12 @@ if (import.meta.server) {
   }
 }
 
-const hasFilters = computed(() => {
+const activeFilters = computed(() => {
   const s = state.value;
-  return !!(s.domain || s.tld || s.drMin || s.drMax || s.checkedFrom || s.checkedTo);
+  return [s.domain, s.tld, s.drMin, s.drMax, s.checkedFrom, s.checkedTo].filter(Boolean).length;
 });
+const hasFilters = computed(() => activeFilters.value > 0);
+const filtersOpen = ref(false);
 
 // Any change resets to page 1 unless it is a page change itself.
 function update(patch: Partial<DomainsState>) {

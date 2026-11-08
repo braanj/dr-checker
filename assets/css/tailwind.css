@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-white text-[12px] leading-[1.4] text-[#1d1d1f] antialiased;
+  }
+}
+
+@layer components {
+  .data-table {
+    @apply w-full border-collapse text-left;
+  }
+  .data-table th {
+    @apply border border-[#ccc] bg-[#e9e9e9] px-1.5 py-[3px] text-[11px] font-medium text-[#333];
+  }
+  .data-table td {
+    @apply border border-[#e3e3e3] px-1.5 py-[2px];
+  }
+  .data-table tbody tr:nth-child(even) td {
+    @apply bg-[#f8f8f8];
+  }
+  .data-table tbody tr:hover td {
+    @apply bg-[#eef3fb];
+  }
+
+  .panel-label {
+    @apply text-[10px] font-semibold uppercase tracking-wide text-[#555];
+  }
+
+  .btn-sm {
+    @apply inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-sm border border-[#bbb] bg-white px-2.5 py-[3px] text-[12px] font-medium text-[#1d1d1f] hover:bg-[#f0f0f0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply border-accent bg-accent text-white hover:bg-accent-hover;
+  }
+
+  .input-sm {
+    @apply rounded-sm border border-[#bbb] bg-white px-1.5 py-[3px] text-[12px] text-[#1d1d1f] placeholder:text-[#767676] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent;
+  }
+}
