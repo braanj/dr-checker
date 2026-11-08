@@ -1,91 +1,92 @@
 <template>
-  <div>
-    <header class="px-4 pb-8 pt-10">
-      <div class="mx-auto max-w-2xl">
-        <h1 class="text-3xl font-semibold tracking-tight text-[#1d1d1f]">Check Domain Rating</h1>
-        <p class="mt-2 text-[15px] leading-relaxed text-[#6e6e73]">
-          Type up to 100 domains or upload a CSV of up to 1,000.
-          <NuxtLink class="text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" to="/docs">How it works</NuxtLink>
-        </p>
-      </div>
-    </header>
-    <div class="mx-auto max-w-2xl px-4 pb-24">
-      <form class="space-y-4" @submit.prevent="onSubmit">
-        <textarea v-if="mode === 'typed'" ref="textareaEl" v-model="domainsText" rows="4"
-          placeholder="example.com, another-site.org&#10;one per line or comma-separated (max 100)"
-          aria-label="Domains to check"
-          class="w-full rounded-2xl border border-black/10 bg-white p-4 text-[15px] text-[#1d1d1f] shadow-sm transition-colors focus:border-accent/50 focus:outline-none" />
-        <p v-if="mode === 'typed' && domainsText.trim()" class="-mt-3 text-right text-xs"
-          :class="typedCount > TYPED_MAX ? 'text-red-600' : 'text-[#6e6e73]'">
-          {{ typedCount }} / {{ TYPED_MAX }}
-        </p>
+  <div class="px-3 py-2">
+    <h1 class="text-[15px] font-semibold text-[#1d1d1f]">Check Domain Rating</h1>
+    <p class="text-[#6e6e73]">
+      Type up to 100 domains or upload a CSV of up to 1,000.
+      <NuxtLink class="rounded-sm text-[#0058b0] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" to="/docs">How it works</NuxtLink>
+    </p>
 
-        <label v-else
-          class="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-black/15 bg-white p-12 text-center shadow-sm transition-colors cursor-pointer hover:border-accent/50 hover:bg-accent-light/40 focus-within:ring-2 focus-within:ring-accent">
-          <span class="text-[15px] font-medium text-[#1d1d1f]">
-            {{ file ? file.name : "Click to choose a CSV file" }}
-          </span>
-          <span class="text-xs text-[#6e6e73]">Max 1,000 URLs</span>
-          <input type="file" accept=".csv,text/csv" class="sr-only" @change="onFileChange" />
-        </label>
+    <form class="mt-2 space-y-1.5" @submit.prevent="onSubmit">
+      <textarea v-if="mode === 'typed'" ref="textareaEl" v-model="domainsText" rows="3"
+        placeholder="example.com, another-site.org&#10;one per line or comma-separated (max 100)"
+        aria-label="Domains to check"
+        class="input-sm block w-full" />
 
-        <button type="submit" :disabled="!canSubmit || submitting"
-          class="w-full rounded-full bg-accent px-4 py-3 text-[15px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-black/20">
+      <label v-else
+        class="flex cursor-pointer items-center gap-2 rounded-sm border border-dashed border-[#999] bg-[#f8f8f8] px-3 py-3 hover:bg-[#f0f0f0] focus-within:ring-2 focus-within:ring-accent">
+        <span class="font-medium text-[#1d1d1f]">
+          {{ file ? file.name : "Click to choose a CSV file" }}
+        </span>
+        <span class="text-[11px] text-[#6e6e73]">Max 1,000 URLs</span>
+        <input type="file" accept=".csv,text/csv" class="sr-only" @change="onFileChange" />
+      </label>
+
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <button type="submit" :disabled="!canSubmit || submitting" class="btn-sm btn-primary">
           {{ submitting ? "Checking…" : "Check DR" }}
         </button>
-
-        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
-          <button type="button" class="whitespace-nowrap text-accent hover:underline" @click="toggleMode">
-            {{ mode === "typed" ? "or upload a CSV" : "or type domains" }}
-          </button>
-          <span class="text-xs text-[#6e6e73]">Checked domains are added to the public directory.</span>
-        </div>
-
-        <p v-if="errorMsg" role="alert" class="text-sm text-red-600">{{ errorMsg }}</p>
-        <p v-if="infoMsg" role="status" class="text-sm text-[#6e6e73]">{{ infoMsg }}</p>
-      </form>
-
-      <!-- Inline results for small typed checks -->
-      <CheckResults v-if="inlineCheckId" :key="inlineCheckId" :batch-id="inlineCheckId" :show-title="false"
-        @completed="completed = true" />
-
-      <div v-if="completed" class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-        <button type="button"
-          class="text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          @click="checkMore">
-          Check more domains
+        <button type="button" class="whitespace-nowrap rounded-sm text-[#0058b0] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" @click="toggleMode">
+          {{ mode === "typed" ? "or upload a CSV" : "or type domains" }}
         </button>
-        <NuxtLink to="/domains"
-          class="text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
-          See all domains →
-        </NuxtLink>
+        <span class="text-[11px] text-[#6e6e73]">Checked domains are added to the public directory.</span>
+        <span v-if="mode === 'typed' && domainsText.trim()" class="ml-auto text-[11px] tabular-nums"
+          :class="typedCount > TYPED_MAX ? 'text-red-600' : 'text-[#6e6e73]'">
+          {{ typedCount }} / {{ TYPED_MAX }}
+        </span>
       </div>
 
-      <!-- My recent checks (browser-local) -->
-      <ClientOnly>
-        <section v-if="recent.length" class="mt-12" aria-labelledby="recent-heading">
-          <div class="flex items-center justify-between">
-            <h2 id="recent-heading" class="text-lg font-semibold tracking-tight text-[#1d1d1f]">My recent checks</h2>
-            <button type="button"
-              class="rounded text-sm text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              @click="clearRecent">
-              Clear
-            </button>
-          </div>
-          <ul class="mt-3 divide-y divide-black/5 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm">
-            <li v-for="r in recent" :key="r.batchId">
-              <NuxtLink :to="recentHref(r)"
-                class="flex items-center justify-between gap-4 px-4 py-3 text-sm transition-colors hover:bg-black/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent">
-                <span class="min-w-0 truncate font-medium text-[#1d1d1f]">{{ r.label }}</span>
-                <span class="shrink-0 text-[#6e6e73]">
-                  {{ r.total }} {{ r.total === 1 ? "domain" : "domains" }} · {{ checkedAgo(r.createdAt) }}
-                </span>
-              </NuxtLink>
-            </li>
-          </ul>
-        </section>
-      </ClientOnly>
+      <p v-if="errorMsg" role="alert" class="text-red-600">{{ errorMsg }}</p>
+      <p v-if="infoMsg" role="status" class="text-[#6e6e73]">{{ infoMsg }}</p>
+    </form>
+
+    <!-- Inline results for small typed checks -->
+    <CheckResults v-if="inlineCheckId" :key="inlineCheckId" class="mt-3" :batch-id="inlineCheckId" :show-title="false"
+      @completed="completed = true" />
+
+    <div v-if="completed" class="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+      <button type="button"
+        class="rounded-sm text-[#0058b0] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        @click="checkMore">
+        Check more domains
+      </button>
+      <NuxtLink to="/domains"
+        class="rounded-sm text-[#0058b0] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+        See all domains →
+      </NuxtLink>
     </div>
+
+    <!-- My recent checks (browser-local) -->
+    <ClientOnly>
+      <section v-if="recent.length" class="mt-4" aria-labelledby="recent-heading">
+        <div class="flex items-center gap-3">
+          <h2 id="recent-heading" class="text-[13px] font-semibold text-[#1d1d1f]">My recent checks</h2>
+          <button type="button"
+            class="rounded-sm text-[11px] text-[#0058b0] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            @click="clearRecent">
+            Clear
+          </button>
+        </div>
+        <table class="data-table mt-1">
+          <thead>
+            <tr>
+              <th scope="col">Check</th>
+              <th scope="col" class="w-20 text-right">Domains</th>
+              <th scope="col" class="w-28">Submitted</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in recent" :key="r.batchId">
+              <td class="max-w-0 truncate">
+                <NuxtLink :to="recentHref(r)"
+                  class="rounded-sm font-medium text-[#0058b0] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">{{ r.label }}</NuxtLink>
+              </td>
+              <td class="text-right tabular-nums">{{ r.total }}</td>
+              <td class="whitespace-nowrap text-[#6e6e73]" :title="isoDate(r.createdAt)">{{ checkedAgo(r.createdAt) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </ClientOnly>
   </div>
 </template>
 
