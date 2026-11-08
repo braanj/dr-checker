@@ -129,7 +129,7 @@ if (pageState === "unknown") {
     meta: [{ name: "robots", content: "noindex" }],
   });
 } else if (view.value) {
-  useResponseHeader("Cache-Control").value = "public, s-maxage=600, stale-while-revalidate=3600";
+  if (import.meta.server) useResponseHeader("Cache-Control").value = "public, s-maxage=600, stale-while-revalidate=3600";
   const seo = domainSeo(view.value, config.public.siteUrl as string);
   useHead({
     title: seo.title,
