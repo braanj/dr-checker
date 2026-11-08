@@ -1,6 +1,12 @@
 {
   "name": "dr-checker",
+  "description": "Bulk Ahrefs Domain Rating checker with a public, SEO-friendly domain directory (Nuxt 3 + Supabase).",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/braanj/DR-checker.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "nuxt dev",
@@ -8,7 +14,8 @@
     "preview": "nuxt preview",
     "test": "vitest run",
     "typecheck": "nuxi typecheck",
-    "gen:types": "npx -y supabase@2.109.0 gen types typescript --project-id jwlpauxspwybjkxxujvc --schema public > supabase/functions/_shared/database.types.ts"
+    "gen:types": "set -a && . ./.env && set +a && npx -y supabase@2.109.0 gen types typescript --project-id \"$(echo \"$SUPABASE_URL\" | cut -d/ -f3 | cut -d. -f1)\" --schema public > supabase/functions/_shared/database.types.ts",
+    "postinstall": "nuxt prepare"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
