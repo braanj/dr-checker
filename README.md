@@ -1,5 +1,13 @@
 # DR Checker — Ahrefs Domain Rating Directory
 
+[![CI](https://github.com/braanj/DR-checker/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/braanj/DR-checker/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Live demo](https://img.shields.io/badge/demo-dr--bulkchecker.netlify.app-00C7B7?logo=netlify&logoColor=white)](https://dr-bulkchecker.netlify.app)
+[![Node ≥ 22](https://img.shields.io/badge/node-%E2%89%A522-339933?logo=node.js&logoColor=white)](.nvmrc)
+[![Nuxt 3](https://img.shields.io/badge/Nuxt-3-00DC82?logo=nuxt&logoColor=white)](https://nuxt.com)
+[![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20Edge%20Functions-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 Nuxt 3 + Supabase app: type a few domains or upload a CSV of URLs, watch
 server-side processing sync live to the browser, then download DR results as
 CSV. No accounts. Every domain with a DR lands in a public domain directory
