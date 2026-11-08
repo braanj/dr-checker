@@ -1,7 +1,7 @@
 <template>
   <div>
     <table class="data-table hidden md:table">
-      <thead class="sticky top-0 z-10">
+      <thead class="sticky top-0 z-10 [&_th]:shadow-[inset_0_-1px_0_#ccc]">
         <tr>
           <th scope="col" class="w-7 text-center"><slot name="select-header" /></th>
           <th scope="col" :aria-sort="ariaSort('domain')">

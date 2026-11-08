@@ -24,15 +24,15 @@
         <DomainsToolbar :state="state" @update="update" @clear="clearFilters" />
       </aside>
 
-      <div class="min-w-0 flex-1 space-y-2 px-3 py-2">
-        <label class="flex items-center gap-1.5 text-[#555] md:hidden">
+      <div class="min-w-0 flex-1">
+        <label class="flex items-center gap-1.5 px-3 py-2 text-[#555] md:hidden">
           Sort by
           <select :value="sortIndex" class="input-sm" @change="onSortSelect">
             <option v-for="(o, i) in SORT_OPTIONS" :key="o.label" :value="i">{{ o.label }}</option>
           </select>
         </label>
 
-        <div class="border border-[#ccc] bg-white">
+        <div class="bg-white">
           <div v-if="error && !data" class="p-6 text-center">
             <p>Couldn't load domains.</p>
             <button type="button" class="btn-sm btn-primary mt-2" @click="() => refresh()">Retry</button>
@@ -92,7 +92,7 @@
           </DomainsTable>
         </div>
 
-        <div v-if="(data && data.total > 0) || selection.size > 0" class="sticky bottom-0 z-20 space-y-1.5 border-t border-[#ccc] bg-white py-1.5">
+        <div v-if="(data && data.total > 0) || selection.size > 0" class="sticky bottom-0 z-20 space-y-1.5 border-t border-[#ccc] bg-white px-3 py-1.5">
           <DomainsPager
             v-if="data && data.total > 0"
             :page="data.page"
