@@ -18,6 +18,7 @@
           type="button"
           class="flex h-7 w-7 items-center justify-center rounded-sm hover:bg-[#e0e0e0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           aria-label="Open menu"
+          title="Open menu"
           aria-controls="mobile-drawer"
           :aria-expanded="open"
           @click="open = true"

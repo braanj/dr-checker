@@ -32,7 +32,7 @@
             <tr>
               <th v-if="showUrl" class="hidden sm:table-cell">URL</th>
               <th>Domain</th>
-              <th class="text-right">DR</th>
+              <th class="text-right" :title="HINTS.dr">DR</th>
               <th>Status</th>
               <th>Checked</th>
             </tr>
@@ -56,13 +56,13 @@
                   :title="row.error_message ?? undefined">
                   retrying <small>· attempt {{ retryInfo(row)!.attempt }} of {{ retryInfo(row)!.of }}</small>
                 </span>
-                <span v-else :class="statusBadgeClass(row.status)">{{ row.status }} <small v-if="row.status === 'error'">
+                <span v-else :class="statusBadgeClass(row.status)" :title="STATUS_HINTS[row.status]">{{ row.status }} <small v-if="row.status === 'error'">
                     ({{ row.error_message }})
                   </small>
                 </span>
               </td>
               <td class="whitespace-nowrap text-[#6e6e73]">
-                <template v-if="row.checked_at && row.dr !== null">{{ checkedAgo(row.checked_at) }}</template>
+                <span v-if="row.checked_at && row.dr !== null" :title="isoDate(row.checked_at)">{{ checkedAgo(row.checked_at) }}</span>
               </td>
             </tr>
           </tbody>
