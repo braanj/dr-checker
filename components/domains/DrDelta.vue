@@ -13,6 +13,6 @@ import { formatDelta } from "~/utils/domainsTable";
 const props = defineProps<{ change: number | string | null }>();
 const d = computed(() => formatDelta(props.change === null ? null : Number(props.change)));
 const color = computed(() =>
-  d.value.dir === "up" ? "text-emerald-600" : d.value.dir === "down" ? "text-red-600" : "text-[#6e6e73]",
+  d.value.dir === "up" ? "text-[#1a7f37]" : d.value.dir === "down" ? "text-[#c62828]" : "text-[#6e6e73]",
 );
 </script>
