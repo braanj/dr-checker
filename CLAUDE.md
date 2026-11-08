@@ -18,7 +18,7 @@ The scripts are in `package.json`. Facts the files don't tell you:
 
 - **Node ≥ 22** (`.nvmrc` pins 24; `nvm use`, or prefix `PATH=$HOME/.nvm/versions/node/v24.16.0/bin:$PATH`). supabase-js needs the native `WebSocket` at `createClient()` time, even on the server. Node 20 fails every Supabase route with "Node.js 20 detected without native WebSocket support".
 - **Gates for every change:** `npm test`, `npm run typecheck` (must be 0 errors) and `npm run build`. For each edge function touched, also run `deno check supabase/functions/<fn>/index.ts`, then delete the `deno.lock` it creates. The edge entrypoints are excluded from `tsconfig.json` (Deno globals), so only `deno check` covers them.
-- **Supabase CLI:** use `npx -y supabase@2.109.0 …` with `SUPABASE_ACCESS_TOKEN` taken from `.env`. There's no global CLI, no Docker, and no `gh`.
+- **Supabase CLI:** use `npx -y supabase@2.109.0 …` with `SUPABASE_ACCESS_TOKEN` taken from `.env`. There's no global CLI, no Docker, and no `gh` (GitHub work goes through the GitHub MCP tools).
 - **Env (`.env`):** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (server-only), `SUPABASE_ACCESS_TOKEN` (CLI / Management API), optional `SITE_URL`. Edge-function secrets live in `supabase secrets`: `AHREFS_DR_RATING` and `WORKER_SECRET`.
 - **Hosting is Netlify** (serverless Nitro), so keep no in-memory state between requests. Netlify deploys on merge to `main`.
 
@@ -28,7 +28,7 @@ The scripts are in `package.json`. Facts the files don't tell you:
 - **Who runs what:**
   - Claude: `db push` and `functions deploy process-queue|fetch-meta --no-verify-jwt` (allow-listed in `.claude/settings.local.json`), plus read-only checks through the Management API (`"read_only": true`).
   - The user: data repairs, SQL scenario tests, and `scripts/provision-worker-secret.sh`. Give them a ready-to-paste `! …` command.
-- **Release order:** branch, then implement with tests first, then push the DB/function changes from the branch, verify on production, push the branch, and open a PR through a prefilled `https://github.com/braanj/DR-checker/compare/main...<branch>?expand=1&title=…&body=…` URL. The user merges. Afterwards, sync `main`, delete the branch, and verify the deployed site.
+- **Release order:** branch, then implement with tests first, then push the DB/function changes from the branch, verify on production, push the branch, and open the PR with the GitHub MCP tool (`mcp__github__create_pull_request`, owner `braanj`, repo `DR-checker`, base `main`; check `list_pull_requests` with `head: braanj:<branch>` first to avoid a duplicate). `main` is protected: no direct pushes, force pushes or deletion, and the CI `check` job (test, typecheck, build) must pass on an up-to-date branch. The user merges. Afterwards, sync `main`, delete the branch, and verify the deployed site.
 - **SQL scenario tests** (`supabase/tests/*.sql`) are one `do` block that always ends by raising an exception, so everything rolls back. Success is the error text `SCENARIO OK`.
 - **Read-only Management API queries** run as a role that cannot execute functions revoked from `public` (e.g. `meta_due`). Query the tables directly instead.
 - **Health check** (should return no rows): `select b.id from public.batches b join public.urls u on u.batch_id = b.id group by b.id having b.processed_urls <> count(*) filter (where u.status in ('done','error'));`
