@@ -63,6 +63,20 @@ export function recentLabel(input: { csvName?: string; typed?: string; total: nu
   return rest > 0 ? `${items[0]} +${rest} more` : items[0];
 }
 
-export function recentHref(entry: RecentCheck): string {
+export function recentEntry(
+  input: { csvName: string } | { typed: string },
+  res: { batchId: string; total: number; display: "inline" | "page" },
+  createdAt: string,
+): RecentCheck {
+  return {
+    batchId: res.batchId,
+    createdAt,
+    total: res.total,
+    label: recentLabel({ ...input, total: res.total }),
+    inline: res.display === "inline",
+  };
+}
+
+export function recentHref(entry: Pick<RecentCheck, "batchId" | "inline">): string {
   return entry.inline ? `/?check=${entry.batchId}` : `/results/${entry.batchId}`;
 }

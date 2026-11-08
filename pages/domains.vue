@@ -8,6 +8,17 @@
 
       <DomainsToolbar :state="state" @update="update" @clear="clearFilters" />
 
+      <label class="flex items-center gap-2 text-sm text-[#6e6e73] md:hidden">
+        Sort by
+        <select
+          :value="sortIndex"
+          class="rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-[#1d1d1f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          @change="onSortSelect"
+        >
+          <option v-for="(o, i) in SORT_OPTIONS" :key="o.label" :value="i">{{ o.label }}</option>
+        </select>
+      </label>
+
       <div class="rounded-2xl border border-black/5 bg-white">
         <div v-if="error && !data" class="p-10 text-center">
           <p class="text-[15px] text-[#1d1d1f]">Couldn't load domains.</p>
@@ -20,7 +31,26 @@
         <div v-else-if="data && data.domains.length === 0" class="p-10 text-center">
           <template v-if="hasFilters">
             <p class="text-[15px] text-[#1d1d1f]">No domains match these filters.</p>
-            <button type="button" class="mt-3 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" @click="clearFilters">Clear filters</button>
+            <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <button
+                v-if="checkableDomain"
+                type="button"
+                class="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+                :disabled="checking"
+                @click="checkSearched"
+              >
+                {{ checking ? "Checking…" : `Check ${checkableDomain} now` }}
+              </button>
+              <button
+                type="button"
+                class="rounded-full px-4 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                :class="checkableDomain ? 'border border-black/10 bg-white text-[#1d1d1f] hover:bg-black/5' : 'bg-accent text-white hover:bg-accent-hover'"
+                @click="clearFilters"
+              >
+                Clear filters
+              </button>
+            </div>
+            <p v-if="checkError" role="alert" class="mt-3 text-sm text-red-600">{{ checkError }}</p>
           </template>
           <p v-else class="text-[15px] text-[#1d1d1f]">No domains checked yet.</p>
         </div>
@@ -47,7 +77,9 @@
             <input type="checkbox" :aria-label="`Select ${row.domain}`" class="h-4 w-4 cursor-pointer rounded accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" :checked="selection.has(row.domain)" @change="onToggle(row.domain, $event)" />
           </template>
           <template #select-card="{ row }">
-            <input type="checkbox" :aria-label="`Select ${row.domain}`" class="h-4 w-4 cursor-pointer rounded accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" :checked="selection.has(row.domain)" @change="onToggle(row.domain, $event)" />
+            <label class="-m-1 flex cursor-pointer p-1">
+              <input type="checkbox" :aria-label="`Select ${row.domain}`" class="h-4 w-4 cursor-pointer rounded accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" :checked="selection.has(row.domain)" @change="onToggle(row.domain, $event)" />
+            </label>
           </template>
         </DomainsTable>
       </div>
@@ -78,7 +110,8 @@
 <script setup lang="ts">
 import type { DomainsResponse, SortBy } from "~/server/utils/domainsQuery";
 import { loadSelection, pageCheckState, saveSelection, setPage, toggleDomain } from "~/utils/domainSelection";
-import { DEFAULT_STATE, nextSort, parseDomainsRoute, toRouteQuery, type DomainsState } from "~/utils/domainsTable";
+import { normalizeDomain } from "~/server/utils/domain";
+import { DEFAULT_STATE, SORT_OPTIONS, nextSort, parseDomainsRoute, sortOptionIndex, toRouteQuery, type DomainsState } from "~/utils/domainsTable";
 
 const route = useRoute();
 const router = useRouter();
@@ -202,6 +235,38 @@ async function exportSelected() {
 
 function onSort(col: SortBy) {
   return update(nextSort(state.value, col));
+}
+
+const sortIndex = computed(() => sortOptionIndex(state.value));
+function onSortSelect(e: Event) {
+  const o = SORT_OPTIONS[Number((e.target as HTMLSelectElement).value)];
+  return update({ sortBy: o.sortBy, sortDir: o.sortDir });
+}
+
+// Only a bare domain search is a "not in the directory" signal; with other filters
+// active, the domain may be listed and merely filtered out.
+const checkableDomain = computed(() => {
+  const { domain, tld, drMin, drMax, checkedFrom, checkedTo } = state.value;
+  return tld || drMin || drMax || checkedFrom || checkedTo ? null : normalizeDomain(domain);
+});
+const checking = ref(false);
+const checkError = ref("");
+
+async function checkSearched() {
+  const domain = checkableDomain.value;
+  if (!domain) return;
+  checking.value = true;
+  checkError.value = "";
+  try {
+    const res = await submitCheck({ source: "typed", domains: domain });
+    const inline = res.display === "inline";
+    await navigateTo(recentHref({ batchId: res.batchId, inline }));
+    if (inline) focusWhenPresent("check-results");
+  } catch (e: any) {
+    checkError.value = e?.data?.statusMessage ?? "Check failed. Please try again.";
+  } finally {
+    checking.value = false;
+  }
 }
 
 function clearFilters() {

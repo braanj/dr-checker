@@ -1,5 +1,9 @@
 <template>
   <div class="md:flex">
+    <a href="#main"
+      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-accent focus:shadow-sm focus:outline-none focus:ring-2 focus:ring-accent">
+      Skip to content
+    </a>
     <!-- md+: persistent sidebar -->
     <div class="sticky top-0 hidden h-screen shrink-0 md:block">
       <AppSidebar />
@@ -24,7 +28,7 @@
         </button>
       </header>
 
-      <main>
+      <main id="main" tabindex="-1" class="focus:outline-none">
         <slot />
       </main>
     </div>

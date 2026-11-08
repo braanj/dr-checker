@@ -4,6 +4,7 @@ import {
   RECENT_MAX,
   addRecent,
   readRecent,
+  recentEntry,
   recentHref,
   recentLabel,
   writeRecent,
@@ -80,6 +81,18 @@ describe("recentHref", () => {
   it("builds both shapes", () => {
     expect(recentHref(entry("x", true))).toBe("/?check=x");
     expect(recentHref(entry("x", false))).toBe("/results/x");
+  });
+});
+
+describe("recentEntry", () => {
+  it("records a typed check with its label and display", () => {
+    expect(
+      recentEntry({ typed: "a.com, b.com" }, { batchId: "x", total: 2, display: "inline" }, "2026-10-26T00:00:00.000Z"),
+    ).toEqual(entry("x", true));
+  });
+  it("labels a csv check by file name and opens it on the results page", () => {
+    const e = recentEntry({ csvName: "list.csv" }, { batchId: "y", total: 500, display: "page" }, "t");
+    expect(e).toMatchObject({ label: "list.csv", total: 500, inline: false });
   });
 });
 

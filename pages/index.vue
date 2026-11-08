@@ -11,18 +11,22 @@
     </header>
     <div class="mx-auto max-w-2xl px-4 pb-24">
       <form class="space-y-4" @submit.prevent="onSubmit">
-        <textarea v-if="mode === 'typed'" v-model="domainsText" rows="4"
+        <textarea v-if="mode === 'typed'" ref="textareaEl" v-model="domainsText" rows="4"
           placeholder="example.com, another-site.org&#10;one per line or comma-separated (max 100)"
           aria-label="Domains to check"
           class="w-full rounded-2xl border border-black/10 bg-white p-4 text-[15px] text-[#1d1d1f] shadow-sm transition-colors focus:border-accent/50 focus:outline-none" />
+        <p v-if="mode === 'typed' && domainsText.trim()" class="-mt-3 text-right text-xs"
+          :class="typedCount > TYPED_MAX ? 'text-red-600' : 'text-[#6e6e73]'">
+          {{ typedCount }} / {{ TYPED_MAX }}
+        </p>
 
         <label v-else
-          class="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-black/15 bg-white p-12 text-center shadow-sm transition-colors cursor-pointer hover:border-accent/50 hover:bg-accent-light/40">
+          class="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-black/15 bg-white p-12 text-center shadow-sm transition-colors cursor-pointer hover:border-accent/50 hover:bg-accent-light/40 focus-within:ring-2 focus-within:ring-accent">
           <span class="text-[15px] font-medium text-[#1d1d1f]">
             {{ file ? file.name : "Click to choose a CSV file" }}
           </span>
-          <span class="text-xs text-[#86868b]">Max 1,000 URLs</span>
-          <input type="file" accept=".csv,text/csv" class="hidden" @change="onFileChange" />
+          <span class="text-xs text-[#6e6e73]">Max 1,000 URLs</span>
+          <input type="file" accept=".csv,text/csv" class="sr-only" @change="onFileChange" />
         </label>
 
         <button type="submit" :disabled="!canSubmit || submitting"
@@ -30,22 +34,27 @@
           {{ submitting ? "Checking…" : "Check DR" }}
         </button>
 
-        <div class="flex items-center justify-between text-sm">
-          <button type="button" class="text-accent hover:underline" @click="toggleMode">
+        <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
+          <button type="button" class="whitespace-nowrap text-accent hover:underline" @click="toggleMode">
             {{ mode === "typed" ? "or upload a CSV" : "or type domains" }}
           </button>
-          <span class="text-xs text-[#86868b]">Checked domains are added to the public directory.</span>
+          <span class="text-xs text-[#6e6e73]">Checked domains are added to the public directory.</span>
         </div>
 
-        <p v-if="errorMsg" class="text-sm text-red-600">{{ errorMsg }}</p>
-        <p v-if="infoMsg" class="text-sm text-[#6e6e73]">{{ infoMsg }}</p>
+        <p v-if="errorMsg" role="alert" class="text-sm text-red-600">{{ errorMsg }}</p>
+        <p v-if="infoMsg" role="status" class="text-sm text-[#6e6e73]">{{ infoMsg }}</p>
       </form>
 
       <!-- Inline results for small typed checks -->
       <CheckResults v-if="inlineCheckId" :key="inlineCheckId" :batch-id="inlineCheckId" :show-title="false"
         @completed="completed = true" />
 
-      <div v-if="completed" class="mt-4 text-sm">
+      <div v-if="completed" class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+        <button type="button"
+          class="text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          @click="checkMore">
+          Check more domains
+        </button>
         <NuxtLink to="/domains"
           class="text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
           See all domains →
@@ -81,27 +90,25 @@
 </template>
 
 <script setup lang="ts">
-import type { CheckResponse } from "~/server/utils/createCheck";
+import { TYPED_MAX } from "~/server/utils/checkInput";
 
 useHead({ title: "DR Checker: bulk Ahrefs Domain Rating checker" });
 
-function getStorage(): Storage | null {
-  try {
-    return localStorage;
-  } catch {
-    return null;
-  }
+// Nothing per-visitor renders on the server: recent checks are <ClientOnly>
+// and inline results load in the browser.
+if (import.meta.server) {
+  useResponseHeader("Cache-Control").value = "public, s-maxage=60, stale-while-revalidate=300";
 }
 
 const recent = ref<RecentCheck[]>([]);
 const completed = ref(false);
 onMounted(() => {
-  recent.value = readRecent(getStorage());
+  recent.value = readRecent(recentStorage());
 });
 
 function clearRecent() {
   recent.value = [];
-  writeRecent(getStorage(), []);
+  writeRecent(recentStorage(), []);
 }
 
 const mode = ref<"typed" | "csv">("typed");
@@ -110,6 +117,8 @@ const file = ref<File | null>(null);
 const submitting = ref(false);
 const errorMsg = ref("");
 const infoMsg = ref("");
+const textareaEl = ref<HTMLTextAreaElement | null>(null);
+const typedCount = computed(() => typedDomainCount(domainsText.value));
 
 const route = useRoute();
 const router = useRouter();
@@ -130,6 +139,16 @@ function toggleMode() {
   errorMsg.value = "";
 }
 
+async function checkMore() {
+  domainsText.value = "";
+  errorMsg.value = "";
+  infoMsg.value = "";
+  mode.value = "typed";
+  await router.replace({ query: {} });
+  await nextTick();
+  textareaEl.value?.focus();
+}
+
 function onFileChange(e: Event) {
   const target = e.target as HTMLInputElement;
   file.value = target.files?.[0] ?? null;
@@ -142,39 +161,16 @@ async function onSubmit() {
   infoMsg.value = "";
 
   try {
-    let body: FormData | { domains: string };
-    if (mode.value === "typed") {
-      body = { domains: domainsText.value };
-    } else {
-      body = new FormData();
-      body.append("file", file.value!);
-    }
-
-    const res = await $fetch<CheckResponse>("/api/check", { method: "POST", body });
-    track("check_submitted", { source: mode.value, rows: res.total });
-    noteSubmitted(res.batchId, res.total);
-
+    const res = await submitCheck(
+      mode.value === "typed" ? { source: "typed", domains: domainsText.value } : { source: "csv", file: file.value! },
+    );
     if (res.skipped) infoMsg.value = `Skipped ${res.skipped} entr${res.skipped === 1 ? "y" : "ies"} that weren't valid domains.`;
-
-    const entry: RecentCheck = {
-      batchId: res.batchId,
-      createdAt: new Date().toISOString(),
-      total: res.total,
-      label: recentLabel(
-        mode.value === "csv"
-          ? { csvName: file.value?.name, total: res.total }
-          : { typed: domainsText.value, total: res.total },
-      ),
-      inline: res.display === "inline",
-    };
-    const storage = getStorage();
-    const next = addRecent(readRecent(storage), entry);
-    writeRecent(storage, next);
-    recent.value = next;
+    recent.value = readRecent(recentStorage());
 
     if (res.display === "inline") {
       completed.value = false;
       await router.replace({ query: { check: res.batchId } });
+      focusWhenPresent("check-results");
     } else {
       await navigateTo(`/results/${res.batchId}`);
     }

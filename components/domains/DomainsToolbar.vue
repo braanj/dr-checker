@@ -11,7 +11,7 @@
       />
       <div class="flex items-center gap-1.5">
         <input v-model="drMin" type="number" min="0" max="100" inputmode="numeric" placeholder="DR min" aria-label="Minimum DR" :class="[field, 'w-24']" @input="schedule" />
-        <span class="text-[#86868b]" aria-hidden="true">–</span>
+        <span class="text-[#6e6e73]" aria-hidden="true">–</span>
         <input v-model="drMax" type="number" min="0" max="100" inputmode="numeric" placeholder="DR max" aria-label="Maximum DR" :class="[field, 'w-24']" @input="schedule" />
       </div>
       <input v-model="tld" type="text" placeholder=".tld" aria-label="TLD" :class="[field, 'w-24']" @input="schedule" />

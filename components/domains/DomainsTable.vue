@@ -49,7 +49,7 @@
               <span class="font-medium">{{ formatDr(Number(row.dr)) }}</span>
               <DomainsDrBar :dr="row.dr" class="ml-auto mt-1" />
             </template>
-            <span v-else class="text-[#86868b]">—</span>
+            <span v-else class="text-[#6e6e73]">—</span>
           </td>
           <td class="px-3 py-3 text-right tabular-nums">
             <DomainsDrDelta :change="row.dr_change" />
@@ -77,7 +77,7 @@
         <div class="min-w-0 flex-1">
           <NuxtLink :to="domainPath(row.domain)" class="block truncate rounded font-medium text-[#1d1d1f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">{{ row.domain }}</NuxtLink>
           <p v-if="row.title" class="truncate text-xs text-[#6e6e73]" :title="row.title">{{ row.title }}</p>
-          <p class="mt-0.5 text-xs text-[#86868b]">
+          <p class="mt-0.5 text-xs text-[#6e6e73]">
             <ClientOnly>
               <template #fallback>{{ isoDate(row.checked_at) }}</template>
               {{ checkedAgo(row.checked_at) }}
@@ -86,7 +86,7 @@
         </div>
         <div class="shrink-0 text-right tabular-nums">
           <p v-if="row.dr !== null" class="font-medium">DR {{ formatDr(Number(row.dr)) }}</p>
-          <p v-else class="text-[#86868b]">—</p>
+          <p v-else class="text-[#6e6e73]">—</p>
           <DomainsDrDelta :change="row.dr_change" class="text-xs" />
         </div>
       </li>

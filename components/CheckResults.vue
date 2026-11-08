@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <div v-if="loading" class="mt-6 text-[#86868b]">Loading results…</div>
+  <div id="check-results" role="region" tabindex="-1" aria-label="Check results" class="focus:outline-none">
+    <div v-if="loading" class="mt-6 text-[#6e6e73]">Loading results…</div>
     <div v-else-if="error" class="mt-6 text-red-600">{{ error }}</div>
 
     <template v-else-if="batch">
@@ -8,10 +8,10 @@
 
       <div class="mt-6 rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
         <div class="flex justify-between text-sm text-[#6e6e73] mb-2">
-          <span>{{ statusLabel }}</span>
+          <span role="status">{{ statusLabel }}</span>
           <span>{{ batch.processed_urls }} / {{ batch.total_urls }}</span>
         </div>
-        <p v-if="batch.created_at" class="-mt-1 mb-2 text-xs text-[#86868b]">
+        <p v-if="batch.created_at" class="-mt-1 mb-2 text-xs text-[#6e6e73]">
           Started {{ new Date(batch.created_at).toLocaleString() }}
         </p>
         <div class="h-1.5 w-full overflow-hidden rounded-full bg-black/5">
@@ -29,15 +29,15 @@
           @click="download">
           Download CSV
         </button>
-        <p class="text-xs text-[#86868b]">Results are kept for {{ RESULTS_KEPT_DAYS }} days — download the CSV to keep them.</p>
+        <p class="text-xs text-[#6e6e73]">Results are kept for {{ RESULTS_KEPT_DAYS }} days — download the CSV to keep them.</p>
       </div>
 
       <div class="mt-8 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm">
         <div class="overflow-x-auto">
-          <table class="w-full min-w-[560px] text-sm border-collapse">
+          <table class="w-full text-sm border-collapse" :class="{ 'sm:min-w-[560px]': showUrl }">
             <thead>
               <tr class="text-left text-[#6e6e73] border-b border-black/5">
-                <th class="py-3 px-4 font-medium">URL</th>
+                <th v-if="showUrl" class="hidden py-3 px-4 font-medium sm:table-cell">URL</th>
                 <th class="py-3 px-4 font-medium">Domain</th>
                 <th class="py-3 px-4 font-medium">DR</th>
                 <th class="py-3 px-4 font-medium">Status</th>
@@ -46,9 +46,10 @@
             <tbody>
               <tr v-for="row in sortedUrls" :key="row.id"
                 class="border-b border-black/5 last:border-0 transition-colors hover:bg-black/[0.02]">
-                <td class="py-2.5 px-4 truncate max-w-[220px]" :title="row.original_url">{{ row.original_url }}</td>
-                <td class="py-2.5 px-4 text-[#6e6e73]">
-                  <NuxtLink :to="domainPath(row.domain)" class="transition-colors hover:text-accent">{{ row.domain }}</NuxtLink>
+                <td v-if="showUrl" class="hidden py-2.5 px-4 truncate max-w-[220px] sm:table-cell" :title="row.original_url">{{ row.original_url }}</td>
+                <td class="py-2.5 px-4">
+                  <NuxtLink :to="domainPath(row.domain)"
+                    class="rounded text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">{{ row.domain }}</NuxtLink>
                 </td>
                 <td class="py-2.5 px-4">
                   <span class="font-medium">{{ row.dr ?? "—" }}</span>
@@ -56,7 +57,7 @@
                     class="ml-2 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium">
                     {{ sourceBadge(row)!.label }}
                   </span>
-                  <div v-if="row.checked_at && row.dr !== null" class="text-xs text-[#86868b]">
+                  <div v-if="row.checked_at && row.dr !== null" class="text-xs text-[#6e6e73]">
                     checked {{ checkedAgo(row.checked_at) }}
                   </div>
                 </td>
@@ -98,6 +99,10 @@ watch(
 const sortedUrls = computed(() =>
   [...urls.value].sort((a, b) => a.original_url.localeCompare(b.original_url)),
 );
+
+// Typed bare domains repeat themselves in the URL column; only show it when it adds
+// something, and never on phones, where it would push DR and Status off-screen.
+const showUrl = computed(() => urls.value.some((u) => u.original_url !== u.domain));
 
 const statusLabel = computed(() => {
   switch (batch.value?.status) {

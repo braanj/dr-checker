@@ -6,6 +6,8 @@ import {
   nextSort,
   pageRange,
   parseDomainsRoute,
+  SORT_OPTIONS,
+  sortOptionIndex,
   toRouteQuery,
 } from "../utils/domainsTable";
 
@@ -70,5 +72,27 @@ describe("nextSort", () => {
     expect(nextSort(DEFAULT_STATE, "domain")).toEqual({ sortBy: "domain", sortDir: "asc", page: 1 });
     expect(nextSort(DEFAULT_STATE, "dr")).toEqual({ sortBy: "dr", sortDir: "desc", page: 1 });
     expect(nextSort(DEFAULT_STATE, "dr_change")).toEqual({ sortBy: "dr_change", sortDir: "desc", page: 1 });
+  });
+});
+
+describe("SORT_OPTIONS", () => {
+  it("has one option per sort the URL accepts, each surviving a round trip", () => {
+    const keys = SORT_OPTIONS.map((o) => `${o.sortBy}:${o.sortDir}`);
+    expect(new Set(keys).size).toBe(keys.length);
+    for (const o of SORT_OPTIONS) {
+      const parsed = parseDomainsRoute(toRouteQuery({ ...DEFAULT_STATE, sortBy: o.sortBy, sortDir: o.sortDir }));
+      expect([parsed.sortBy, parsed.sortDir]).toEqual([o.sortBy, o.sortDir]);
+    }
+    for (const sortBy of ["checked_at", "domain", "dr", "dr_change"] as const) {
+      for (const sortDir of ["asc", "desc"] as const) {
+        expect(keys).toContain(`${sortBy}:${sortDir}`);
+      }
+    }
+  });
+
+  it("finds the option for the current state", () => {
+    expect(SORT_OPTIONS[sortOptionIndex(DEFAULT_STATE)].label).toBe("Recently checked");
+    expect(SORT_OPTIONS[sortOptionIndex({ sortBy: "dr", sortDir: "asc" })].label).toBe("Lowest DR");
+    expect(SORT_OPTIONS[sortOptionIndex(nextSort(DEFAULT_STATE, "domain"))].label).toBe("Domain A–Z");
   });
 });
