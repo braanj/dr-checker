@@ -1,5 +1,5 @@
 <template>
-  <div class="flex min-h-screen flex-col">
+  <div class="flex min-h-screen flex-col md:h-screen">
     <header class="flex items-center gap-2 border-b border-[#ccc] px-3 py-1.5">
       <h1 class="text-[15px] font-semibold text-[#1d1d1f]">Domains</h1>
       <p v-if="data" class="tabular-nums text-[#6e6e73]">{{ data.total }} {{ data.total === 1 ? "domain" : "domains" }}</p>
@@ -14,17 +14,17 @@
       </button>
     </header>
 
-    <div class="flex-1 md:flex">
+    <div class="flex-1 md:flex md:min-h-0">
       <aside
         id="domain-filters"
         aria-label="Filters"
-        class="shrink-0 border-b border-[#ccc] bg-[#f3f3f3] p-2 md:block md:w-[150px] md:border-b-0 md:border-r"
+        class="shrink-0 border-b border-[#ccc] bg-[#f3f3f3] p-2 md:block md:w-[150px] md:overflow-y-auto md:border-b-0 md:border-r"
         :class="filtersOpen ? 'block' : 'hidden'"
       >
         <DomainsToolbar :state="state" @update="update" @clear="clearFilters" />
       </aside>
 
-      <div class="min-w-0 flex-1">
+      <div class="min-w-0 flex-1 md:flex md:min-h-0 md:flex-col">
         <label class="flex items-center gap-1.5 px-3 py-2 text-[#555] md:hidden">
           Sort by
           <select :value="sortIndex" class="input-sm" @change="onSortSelect">
@@ -32,7 +32,7 @@
           </select>
         </label>
 
-        <div class="bg-white">
+        <div ref="tableScroller" class="bg-white md:min-h-0 md:flex-1 md:overflow-auto">
           <div v-if="error && !data" class="p-6 text-center">
             <p>Couldn't load domains.</p>
             <button type="button" class="btn-sm btn-primary mt-2" @click="() => refresh()">Retry</button>
@@ -142,6 +142,10 @@ const state = computed(() => parseDomainsRoute(route.query));
 const { data, pending, error, refresh } = await useFetch<DomainsResponse>("/api/domains", {
   query: computed(() => toRouteQuery(state.value)),
 });
+
+// The table scrolls in its own region on md+, so a new result set must start at its first row.
+const tableScroller = ref<HTMLElement | null>(null);
+watch(data, () => tableScroller.value?.scrollTo({ top: 0 }));
 
 // Mirror the /domain/* rule: CDN-cache only on success; a failed render is
 // 503 + no-store (no noindex, so a blip never de-indexes the page).
