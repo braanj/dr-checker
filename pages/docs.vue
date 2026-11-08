@@ -1,18 +1,18 @@
 <template>
-  <div class="mx-auto max-w-5xl px-4 py-10 lg:py-12">
-    <div class="grid gap-x-12 lg:grid-cols-[minmax(0,1fr)_14rem]">
+  <div class="px-3 py-2 leading-relaxed">
+    <div class="grid gap-x-6 lg:grid-cols-[minmax(0,110ch)_12rem]">
       <header class="min-w-0">
-        <h1 class="text-4xl font-semibold tracking-tight text-[#1d1d1f]">Documentation</h1>
-        <p class="mt-2 text-lg text-[#6e6e73]">How to use the Domain Rating Checker.</p>
+        <h1 class="text-[15px] font-semibold text-[#1d1d1f]">Documentation</h1>
+        <p class="text-[#6e6e73]">How to use the Domain Rating Checker.</p>
       </header>
 
       <!-- Table of contents: rendered once; inline box below lg, sticky right column on lg+ -->
       <nav
         aria-label="On this page"
-        class="mt-8 rounded-2xl border border-black/5 bg-white p-5 text-sm shadow-sm lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-0 lg:self-start lg:sticky lg:top-8"
+        class="mt-2 rounded-sm border border-[#ccc] bg-[#f3f3f3] px-2 py-1.5 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-0 lg:self-start lg:sticky lg:top-2"
       >
-        <p class="font-medium text-[#1d1d1f] mb-2">On this page</p>
-        <ol class="space-y-1 list-decimal list-inside text-[#6e6e73]">
+        <p class="panel-label mb-1">On this page</p>
+        <ol class="list-decimal list-inside text-[#555]">
         <li><a href="#overview" :class="linkClass('overview')" :aria-current="activeId === 'overview' ? 'location' : undefined">Overview</a></li>
         <li><a href="#checking" :class="linkClass('checking')" :aria-current="activeId === 'checking' ? 'location' : undefined">Checking domains</a></li>
         <li><a href="#csv-format" :class="linkClass('csv-format')" :aria-current="activeId === 'csv-format' ? 'location' : undefined">Preparing your CSV file</a></li>
@@ -25,26 +25,26 @@
         </ol>
       </nav>
 
-      <div class="mt-12 min-w-0 lg:col-start-1 lg:row-start-2">
+      <div class="mt-3 min-w-0 space-y-4 lg:col-start-1 lg:row-start-2">
         <!-- Overview -->
-        <section class="scroll-mt-16 md:scroll-mt-8" id="overview">
-          <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">1. Overview</h2>
-          <p class="mt-3">
+        <section class="scroll-mt-12 md:scroll-mt-2" id="overview">
+          <h2 class="border-b border-[#ccc] pb-0.5 text-[13px] font-semibold text-[#1d1d1f]">1. Overview</h2>
+          <p class="mt-1.5">
             This tool checks the <strong>Domain Rating (DR)</strong> — Ahrefs' 0–100 score for how strong
             a domain's backlink profile is — for domains you type (up to 100) or upload as a CSV (up to
             1,000). Processing happens on the server and results update live as each domain finishes.
           </p>
-          <p class="mt-3">
+          <p class="mt-1.5">
             There are no accounts: every check gets its own private results link, kept for 7 days. Every domain that gets
-            a DR is added to the public <a href="#directory" class="text-accent hover:underline">domains directory</a>
+            a DR is added to the public <a href="#directory" class="text-[#0058b0] hover:underline">domains directory</a>
             (the <strong>Domains</strong> page in the sidebar).
           </p>
         </section>
 
         <!-- Checking -->
-        <section class="scroll-mt-16 md:scroll-mt-8" id="checking">
-          <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">2. Checking domains</h2>
-          <ol class="mt-3 list-decimal list-inside space-y-1">
+        <section class="scroll-mt-12 md:scroll-mt-2" id="checking">
+          <h2 class="border-b border-[#ccc] pb-0.5 text-[13px] font-semibold text-[#1d1d1f]">2. Checking domains</h2>
+          <ol class="mt-1.5 list-decimal list-inside space-y-0.5">
             <li>On the <strong>Check</strong> page, type domains one per line or comma-separated.</li>
             <li>Click <strong>Check DR</strong>.</li>
             <li>
@@ -52,35 +52,35 @@
               reload or share it). More than 10 open a dedicated results page.
             </li>
           </ol>
-          <ul class="mt-3 list-disc list-inside space-y-1">
-            <li>Full URLs are fine: <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">https://www.example.com/page</code> is checked as <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">example.com</code>.</li>
-            <li>Only a leading <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">www.</code> is removed, so subdomains such as <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">blog.example.com</code> are checked separately.</li>
-            <li>Entries without a dot (e.g. <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">localhost</code>) are skipped.</li>
+          <ul class="mt-1.5 list-disc list-inside space-y-0.5">
+            <li>Full URLs are fine: <code class="rounded-sm bg-black/5 px-1 text-[0.95em]">https://www.example.com/page</code> is checked as <code class="rounded-sm bg-black/5 px-1 text-[0.95em]">example.com</code>.</li>
+            <li>Only a leading <code class="rounded-sm bg-black/5 px-1 text-[0.95em]">www.</code> is removed, so subdomains such as <code class="rounded-sm bg-black/5 px-1 text-[0.95em]">blog.example.com</code> are checked separately.</li>
+            <li>Entries without a dot (e.g. <code class="rounded-sm bg-black/5 px-1 text-[0.95em]">localhost</code>) are skipped.</li>
             <li>Prefer a file? Click <strong>or upload a CSV</strong> below the button.</li>
           </ul>
         </section>
 
         <!-- CSV format -->
-        <section class="scroll-mt-16 md:scroll-mt-8" id="csv-format">
-          <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">3. Preparing your CSV file</h2>
-          <p class="mt-3">Two formats are accepted:</p>
-          <ul class="mt-2 list-disc list-inside space-y-1">
+        <section class="scroll-mt-12 md:scroll-mt-2" id="csv-format">
+          <h2 class="border-b border-[#ccc] pb-0.5 text-[13px] font-semibold text-[#1d1d1f]">3. Preparing your CSV file</h2>
+          <p class="mt-1.5">Two formats are accepted:</p>
+          <ul class="mt-1 list-disc list-inside space-y-0.5">
             <li><strong>One URL per line</strong>, no header row, e.g.:</li>
           </ul>
-          <pre class="mt-2 rounded-xl bg-[#1d1d1f] text-[#f5f5f7] text-xs p-4 overflow-x-auto">https://example.com/page
+          <pre class="mt-1 rounded-sm bg-[#1d1d1f] text-[#f5f5f7] text-[11px] px-2 py-1.5 overflow-x-auto">https://example.com/page
 https://another-site.org
 www.athirdsite.net/blog</pre>
-          <ul class="mt-3 list-disc list-inside space-y-1">
-            <li><strong>A column named <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">url</code></strong>, with any other columns ignored, e.g.:</li>
+          <ul class="mt-1.5 list-disc list-inside space-y-0.5">
+            <li><strong>A column named <code class="rounded-sm bg-black/5 px-1 text-[0.95em]">url</code></strong>, with any other columns ignored, e.g.:</li>
           </ul>
-          <pre class="mt-2 rounded-xl bg-[#1d1d1f] text-[#f5f5f7] text-xs p-4 overflow-x-auto">url,notes
+          <pre class="mt-1 rounded-sm bg-[#1d1d1f] text-[#f5f5f7] text-[11px] px-2 py-1.5 overflow-x-auto">url,notes
 https://example.com/page,homepage
 https://another-site.org,competitor</pre>
-          <p class="mt-3">
+          <p class="mt-1.5">
             Notes:
           </p>
-          <ul class="mt-2 list-disc list-inside space-y-1">
-            <li>The scheme (<code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">https://</code>) is optional — <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">example.com</code> works too.</li>
+          <ul class="mt-1 list-disc list-inside space-y-0.5">
+            <li>The scheme (<code class="rounded-sm bg-black/5 px-1 text-[0.95em]">https://</code>) is optional — <code class="rounded-sm bg-black/5 px-1 text-[0.95em]">example.com</code> works too.</li>
             <li>Only the first column of each line is read; anything after the first comma is ignored.</li>
             <li>Files exported from Excel (with a byte-order mark or Windows line endings) work as-is.</li>
             <li>Rows that can't be parsed into a valid domain are skipped and don't count toward the limit.</li>
@@ -89,18 +89,18 @@ https://another-site.org,competitor</pre>
         </section>
 
         <!-- Tracking -->
-        <section class="scroll-mt-16 md:scroll-mt-8" id="tracking">
-          <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">4. Tracking progress</h2>
-          <p class="mt-3">
-            The results show a progress bar (<code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">processed / total</code>) and an overall status:
+        <section class="scroll-mt-12 md:scroll-mt-2" id="tracking">
+          <h2 class="border-b border-[#ccc] pb-0.5 text-[13px] font-semibold text-[#1d1d1f]">4. Tracking progress</h2>
+          <p class="mt-1.5">
+            The results show a progress bar (<code class="rounded-sm bg-black/5 px-1 text-[0.95em]">processed / total</code>) and an overall status:
           </p>
-          <ul class="mt-2 space-y-1.5">
-            <li><span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium bg-black/5 text-[#6e6e73]">pending</span> — queued behind other checks; nothing picked up yet</li>
-            <li><span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium bg-accent-light text-accent">processing</span> — actively being checked</li>
-            <li><span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">completed</span> — every URL has a result</li>
-            <li><span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-700">failed</span> — finished, but none of the domains could be checked (every row is an error)</li>
+          <ul class="mt-1 space-y-1">
+            <li><span class="inline-block rounded-sm px-1 text-[11px] font-medium bg-black/5 text-[#555]">pending</span> — queued behind other checks; nothing picked up yet</li>
+            <li><span class="inline-block rounded-sm px-1 text-[11px] font-medium bg-accent-light text-[#0058b0]">processing</span> — actively being checked</li>
+            <li><span class="inline-block rounded-sm px-1 text-[11px] font-medium bg-green-100 text-green-700">completed</span> — every URL has a result</li>
+            <li><span class="inline-block rounded-sm px-1 text-[11px] font-medium bg-red-100 text-red-700">failed</span> — finished, but none of the domains could be checked (every row is an error)</li>
           </ul>
-          <p class="mt-3">
+          <p class="mt-1.5">
             This updates automatically — there's nothing to click or refresh. Domains already in the
             directory (checked in the last 30 days) appear instantly; the rest fill in as each DR check
             finishes.
@@ -108,71 +108,71 @@ https://another-site.org,competitor</pre>
         </section>
 
         <!-- Results -->
-        <section class="scroll-mt-16 md:scroll-mt-8" id="results">
-          <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">5. Reading the results</h2>
-          <p class="mt-3">Each row in the results table shows:</p>
-          <ul class="mt-2 list-disc list-inside space-y-1">
+        <section class="scroll-mt-12 md:scroll-mt-2" id="results">
+          <h2 class="border-b border-[#ccc] pb-0.5 text-[13px] font-semibold text-[#1d1d1f]">5. Reading the results</h2>
+          <p class="mt-1.5">Each row in the results table shows:</p>
+          <ul class="mt-1 list-disc list-inside space-y-0.5">
             <li><strong>URL</strong> — exactly what you submitted</li>
             <li><strong>Domain</strong> — the host the URL was resolved to (DR is scored per domain, not per page)</li>
-            <li><strong>DR</strong> — the Ahrefs Domain Rating, 0–100, or <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">—</code> if not available, with when it was checked (e.g. "checked 12 days ago")</li>
+            <li><strong>DR</strong> — the Ahrefs Domain Rating, 0–100, or <code class="rounded-sm bg-black/5 px-1 text-[0.95em]">—</code> if not available, with when it was checked (e.g. "checked 12 days ago")</li>
             <li>
               <strong>Status</strong> —
-              <span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">done</span>
+              <span class="inline-block rounded-sm px-1 text-[11px] font-medium bg-green-100 text-green-700">done</span>
               (DR found) or
-              <span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-700">error</span>
+              <span class="inline-block rounded-sm px-1 text-[11px] font-medium bg-red-100 text-red-700">error</span>
               (could not be checked)
             </li>
           </ul>
-          <p class="mt-3">A small badge next to the DR says where it came from:</p>
-          <ul class="mt-2 space-y-1.5">
-            <li><span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-accent-light text-accent">live</span> — fetched from Ahrefs just now</li>
-            <li><span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-black/5 text-[#6e6e73]">cached</span> — from the directory, checked in the last 30 days</li>
-            <li><span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-amber-100 text-amber-800">stale</span> — Ahrefs had no new DR (it was unavailable after 3 tries, or returned no data), so this is the last known DR</li>
-            <li><span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-amber-100 text-amber-800">retrying</span> — the last try failed temporarily (e.g. Ahrefs rate limit); it is retried automatically, up to 3 attempts — hover it to see the error</li>
+          <p class="mt-1.5">A small badge next to the DR says where it came from:</p>
+          <ul class="mt-1 space-y-1">
+            <li><span class="inline-block rounded-sm px-1 text-[10px] font-medium bg-accent-light text-[#0058b0]">live</span> — fetched from Ahrefs just now</li>
+            <li><span class="inline-block rounded-sm px-1 text-[10px] font-medium bg-black/5 text-[#555]">cached</span> — from the directory, checked in the last 30 days</li>
+            <li><span class="inline-block rounded-sm px-1 text-[10px] font-medium bg-amber-100 text-amber-800">stale</span> — Ahrefs had no new DR (it was unavailable after 3 tries, or returned no data), so this is the last known DR</li>
+            <li><span class="inline-block rounded-sm px-1 text-[10px] font-medium bg-amber-100 text-amber-800">retrying</span> — the last try failed temporarily (e.g. Ahrefs rate limit); it is retried automatically, up to 3 attempts — hover it to see the error</li>
           </ul>
-          <p class="mt-3">
+          <p class="mt-1.5">
             An <strong>error</strong> saying "No DR data from Ahrefs" means Ahrefs has no rating for that
             domain; this is remembered for 7 days. Two URLs on the same domain always get the same DR.
           </p>
         </section>
 
         <!-- Download -->
-        <section class="scroll-mt-16 md:scroll-mt-8" id="download">
-          <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">6. Downloading results as CSV</h2>
-          <p class="mt-3">
+        <section class="scroll-mt-12 md:scroll-mt-2" id="download">
+          <h2 class="border-b border-[#ccc] pb-0.5 text-[13px] font-semibold text-[#1d1d1f]">6. Downloading results as CSV</h2>
+          <p class="mt-1.5">
             Once results start coming in, a <strong>Download CSV</strong> button appears above the table.
             The exported file has one row per submitted URL with columns
-            <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">url, domain, domain_rating, status, source, checked_at</code>.
+            <code class="rounded-sm bg-black/5 px-1 text-[0.95em]">url, domain, domain_rating, status, source, checked_at</code>.
             Results links are deleted after 7 days, so download the CSV if you want to keep them.
           </p>
         </section>
 
         <!-- Directory -->
-      <section class="scroll-mt-16 md:scroll-mt-8" id="directory">
-          <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">7. Domains directory</h2>
-          <p class="mt-3">
+      <section class="scroll-mt-12 md:scroll-mt-2" id="directory">
+          <h2 class="border-b border-[#ccc] pb-0.5 text-[13px] font-semibold text-[#1d1d1f]">7. Domains directory</h2>
+          <p class="mt-1.5">
             The <strong>Domains</strong> entry in the sidebar opens the directory: every domain the tool
             has found a DR for (across everyone's checks), with its latest DR and the date it was
             checked. Domains Ahrefs has no data for aren't listed.
           </p>
-          <ul class="mt-3 list-disc list-inside space-y-1">
+          <ul class="mt-1.5 list-disc list-inside space-y-0.5">
             <li><strong>Search and filters</strong> — search by name, set a DR min–max, and pick a TLD. <strong>More filters</strong> adds checked-from and checked-to dates. Active filters show as removable chips, and <strong>Clear all</strong> resets them. If a search for a domain name finds nothing, you can check that domain right from the empty list.</li>
             <li><strong>Sorting</strong> — click the Domain, DR, Δ or Checked column header to sort by it; click again to reverse. On a phone, use the Sort by menu above the list.</li>
-            <li><strong>Δ</strong> — the DR change since that domain's previous check; <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">—</code> when it has only been checked once.</li>
+            <li><strong>Δ</strong> — the DR change since that domain's previous check; <code class="rounded-sm bg-black/5 px-1 text-[0.95em]">—</code> when it has only been checked once.</li>
             <li><strong>Trend</strong> — a small line showing the last 12 checks (on wider screens).</li>
             <li><strong>Page size</strong> — 20, 50 or 100 rows per page.</li>
             <li><strong>Sharing</strong> — the view (search, filters, sort, page) lives in the URL, so you can copy the link to share it.</li>
           </ul>
-          <p class="mt-3">
+          <p class="mt-1.5">
             <strong>Selecting rows.</strong> Tick the checkboxes to select domains. Your selection is kept
             while you browse across pages, until you close the tab (up to 1,000 domains).
           </p>
-          <p class="mt-3">
+          <p class="mt-1.5">
             <strong>Export selected</strong> downloads a CSV of your selection with columns
-            <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">domain, title, dr, dr_change, checked_at, page_url</code>. You can export up to
+            <code class="rounded-sm bg-black/5 px-1 text-[0.95em]">domain, title, dr, dr_change, checked_at, page_url</code>. You can export up to
             1,000 domains at a time and 10 exports per minute. Domains that no longer have a DR are skipped.
           </p>
-          <p class="mt-3">
+          <p class="mt-1.5">
             Click a domain to open its page: current DR, DR history (one reading per day) and a form to check another domain.
             Once a DR is older than 30 days the page shows a <strong>Re-check</strong> button; before that it shows when the
             automatic re-check is due, because a check inside that window returns the same cached DR.
@@ -181,35 +181,35 @@ https://another-site.org,competitor</pre>
         </section>
 
         <!-- Limits -->
-        <section class="scroll-mt-16 md:scroll-mt-8" id="limits">
-          <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">8. Limits and things to know</h2>
-          <ul class="mt-2 list-disc list-inside space-y-1">
+        <section class="scroll-mt-12 md:scroll-mt-2" id="limits">
+          <h2 class="border-b border-[#ccc] pb-0.5 text-[13px] font-semibold text-[#1d1d1f]">8. Limits and things to know</h2>
+          <ul class="mt-1 list-disc list-inside space-y-0.5">
             <li>Up to 100 typed domains or 1,000 CSV rows per check.</li>
             <li>Up to 10 checks per minute from the same network, and 10,000 result rows per day.</li>
             <li>Up to 2,000 new domains per hour from the same network (domains already in the directory don't count).</li>
             <li>Results links are kept for 7 days.</li>
             <li>A DR is reused for 30 days before it's checked again. Directory domains are also re-checked automatically about every 30 days, so their history keeps growing.</li>
-            <li>DR is per host: <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">blog.example.com</code> and <code class="rounded bg-black/5 px-1.5 py-0.5 text-[0.9em]">example.com</code> are separate entries.</li>
+            <li>DR is per host: <code class="rounded-sm bg-black/5 px-1 text-[0.95em]">blog.example.com</code> and <code class="rounded-sm bg-black/5 px-1 text-[0.95em]">example.com</code> are separate entries.</li>
             <li>Everything you check (with a DR) becomes visible in the public directory.</li>
             <li>Processing speed depends on Ahrefs' rate limits — large files take longer; keep the results link and check back.</li>
           </ul>
         </section>
 
         <!-- FAQ -->
-        <section class="scroll-mt-16 md:scroll-mt-8" id="faq">
-          <h2 class="text-2xl font-semibold tracking-tight text-[#1d1d1f]">9. Troubleshooting / FAQ</h2>
+        <section class="scroll-mt-12 md:scroll-mt-2" id="faq">
+          <h2 class="border-b border-[#ccc] pb-0.5 text-[13px] font-semibold text-[#1d1d1f]">9. Troubleshooting / FAQ</h2>
 
-          <div class="mt-4 space-y-5">
+          <div class="mt-2 space-y-2">
             <div>
               <p class="font-medium text-[#1d1d1f]">A row shows "error" — why?</p>
-              <p class="mt-1">
+              <p class="mt-0.5">
                 Usually the domain has no backlink data in Ahrefs (too new, unindexed, or malformed), or
                 Ahrefs was unavailable after several retries. Double-check the domain resolves in a browser.
               </p>
             </div>
             <div>
               <p class="font-medium text-[#1d1d1f]">The progress bar seems stuck.</p>
-              <p class="mt-1">
+              <p class="mt-0.5">
                 Processing happens in small batches with pacing between checks to respect Ahrefs' rate
                 limits, and failed lookups are retried after a short wait, so large files take time — this
                 is expected, not a hang.
@@ -217,21 +217,21 @@ https://another-site.org,competitor</pre>
             </div>
             <div>
               <p class="font-medium text-[#1d1d1f]">I lost my results link.</p>
-              <p class="mt-1">
+              <p class="mt-0.5">
                 Just check the domains again — anything checked in the last 30 days comes back instantly
                 from the directory.
               </p>
             </div>
             <div>
               <p class="font-medium text-[#1d1d1f]">Can I check the same domain twice?</p>
-              <p class="mt-1">
+              <p class="mt-0.5">
                 Yes, but within 30 days of the last check you'll get the cached DR (marked "cached")
                 rather than a fresh lookup.
               </p>
             </div>
             <div>
               <p class="font-medium text-[#1d1d1f]">I got "Too many checks".</p>
-              <p class="mt-1">
+              <p class="mt-0.5">
                 You've hit the limit of 10 checks per minute — wait a minute and try again.
               </p>
             </div>
@@ -258,8 +258,8 @@ let observer: IntersectionObserver | null = null
 
 function linkClass(id: string) {
   return [
-    'inline-block rounded transition-colors hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-    activeId.value === id ? 'text-accent font-medium' : '',
+    'inline-block rounded-sm hover:text-[#1d1d1f] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+    activeId.value === id ? 'text-[#0058b0] font-semibold' : '',
   ]
 }
 
