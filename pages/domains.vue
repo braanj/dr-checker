@@ -32,7 +32,8 @@
           </select>
         </label>
 
-        <div ref="tableScroller" class="bg-white md:min-h-0 md:flex-1 md:overflow-auto">
+        <!-- relative: keeps the rows' absolutely positioned sr-only text inside the scroll box, so it can't stretch the page -->
+        <div ref="tableScroller" class="relative bg-white md:min-h-0 md:flex-1 md:overflow-auto">
           <div v-if="error && !data" class="p-6 text-center">
             <p>Couldn't load domains.</p>
             <button type="button" class="btn-sm btn-primary mt-2" @click="() => refresh()">Retry</button>
