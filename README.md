@@ -1,9 +1,20 @@
 # DR Checker — Ahrefs Domain Rating Directory
 
+[![CI](https://github.com/braanj/DR-checker/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/braanj/DR-checker/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Live demo](https://img.shields.io/badge/demo-dr--bulkchecker.netlify.app-00C7B7?logo=netlify&logoColor=white)](https://dr-bulkchecker.netlify.app)
+[![Node ≥ 22](https://img.shields.io/badge/node-%E2%89%A522-339933?logo=node.js&logoColor=white)](.nvmrc)
+[![Nuxt 3](https://img.shields.io/badge/Nuxt-3-00DC82?logo=nuxt&logoColor=white)](https://nuxt.com)
+[![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20Edge%20Functions-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 Nuxt 3 + Supabase app: type a few domains or upload a CSV of URLs, watch
 server-side processing sync live to the browser, then download DR results as
 CSV. No accounts. Every domain with a DR lands in a public domain directory
-that doubles as a 30-day cache, so repeat lookups are instant.
+that doubles as a 30-day cache, so repeat lookups are instant, and gets its
+own SEO page with DR history.
+
+**Live:** https://dr-bulkchecker.netlify.app
 
 ## Architecture
 
@@ -33,7 +44,7 @@ that doubles as a 30-day cache, so repeat lookups are instant.
                                       └───────────────────────┘
 ```
 
-Design decisions are recorded in `specs/adr/0001-domain-directory.md`.
+Design decisions are recorded in `specs/adr/` (0001 domain directory, 0002 worker trigger and secret, 0003 domain pages and metadata).
 
 ### Why a Postgres queue + Edge Function (not just an in-process worker)?
 
@@ -88,39 +99,65 @@ Ahrefs' free endpoint (`GET https://api.ahrefs.com/v3/public/domain-rating-free
 ## Project layout
 
 ```
-supabase/schema.sql        End-state schema for fresh installs
-supabase/migrations/       Upgrade for existing projects
+supabase/schema.sql          End-state schema for fresh installs
+supabase/migrations/         Applied migration history
+supabase/tests/              Rollback-only SQL scenario tests
 supabase/functions/
-  _shared/cache.ts         Cache TTLs + freshness rules (shared with Nitro)
-  process-queue/index.ts   Edge Function: claims + processes due URLs
-  process-queue/outcome.ts Pure retry / stale-fallback / cache-write rules
-server/api/check.post.ts   Typed or CSV check: rate limit, cache lookup, inserts
-server/api/domains.get.ts  Public domain directory (filters, sort, pagination)
-server/api/status/[batchId].get.ts   Batch snapshot for first paint
-server/api/download/[batchId].get.ts CSV export
-server/utils/*.ts          Input parsing, check creation, rate limit, admin client
-components/CheckResults.vue Live progress + results table + download button
-pages/index.vue            Check form, inline results, domain directory
-pages/results/[batchId].vue Results page for larger checks
-composables/useBatchRealtime.ts  Realtime broadcast subscription hook
-tests/                     Vitest unit tests (npm test)
+  _shared/                   Cache rules, worker auth, generated DB types
+  process-queue/             Edge Function: claims due URLs, calls Ahrefs, retries
+  fetch-meta/                Edge Function: favicon, title and description via safeFetch
+server/api/check.post.ts     Typed or CSV check: validate, rate limit, cache lookup, inserts
+server/api/domains.get.ts    Public domain directory (filters, sort, pagination)
+server/api/domains/export.post.ts  CSV export of selected domains
+server/api/domain/[domain].get.ts  One domain's DR, history and metadata
+server/api/status/[batchId].get.ts Batch snapshot for first paint
+server/api/download/[batchId].get.ts Results CSV
+server/utils/                Input parsing, check creation, rate limits, queries, CSV
+pages/                       Check page, /domains, /domain/<domain>, /results/<id>, /docs
+components/                  App shell, results table, directory table and filters
+composables/useBatchRealtime.ts  Realtime broadcast subscription with polling fallback
+tests/                       Vitest unit tests (npm test)
 ```
 
 ## Setup
 
-1. `supabase init` / link this repo to your Supabase project.
-2. Fresh project: run `supabase/schema.sql` in the SQL editor. Existing
-   project: run `supabase/migrations/20261007000000_domain_directory.sql`.
-3. Realtime: the app uses private broadcast channels (receive-only for anon
-   via the RLS policy in `schema.sql`); "Private channels only" may be enabled.
-4. Deploy the edge function:
+You need Node 22 or newer (`.nvmrc` pins 24; run `nvm use`), a Supabase project,
+and an Ahrefs API key. Node 20 doesn't work, because supabase-js needs the native
+`WebSocket`.
+
+1. Install: `npm install`. This also runs `nuxt prepare`, which the tests need.
+2. Copy `.env.example` to `.env` and fill in `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ACCESS_TOKEN`. The service-role key is
+   server-only: all table access goes through it, since the tables have no anon
+   policies.
+3. Create the schema. Link the project with
+   `npx -y supabase@2.109.0 link --project-ref <project-ref>`, then apply every
+   migration with `npx -y supabase@2.109.0 db push`.
+4. Deploy both edge functions:
    ```
-   supabase functions deploy process-queue --no-verify-jwt
+   npx -y supabase@2.109.0 functions deploy process-queue --no-verify-jwt
+   npx -y supabase@2.109.0 functions deploy fetch-meta --no-verify-jwt
    ```
-5. Provision the worker secret:
+5. Set the Ahrefs key the worker sends as a bearer token:
+   `npx -y supabase@2.109.0 secrets set AHREFS_DR_RATING=<your-ahrefs-api-key>`
+6. Provision the worker secret and its Vault entries (safe to re-run to rotate):
    `SUPABASE_ACCESS_TOKEN=... scripts/provision-worker-secret.sh <project-ref>`
-6. Copy `.env.example` to `.env` and fill in:
-   - `SUPABASE_URL`, `SUPABASE_ANON_KEY` (public, client-side)
-   - `SUPABASE_SERVICE_ROLE_KEY` (server-only — all table access goes
-     through it, since the tables have no anon policies)
-7. Use Node ≥ 22 (`nvm use` reads `.nvmrc`), then `npm install && npm run dev`; `npm test` runs the unit tests.
+7. In the Supabase dashboard, enable Realtime's "Private channels only". The app
+   uses private, receive-only broadcast channels.
+8. Run it: `npm run dev`. Check your work with `npm test`, `npm run typecheck`
+   and `npm run build`. After a schema change, `npm run gen:types` regenerates the
+   database types from the project in your `.env`.
+
+## Contributing
+
+Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first,
+and follow the [code of conduct](CODE_OF_CONDUCT.md). Notable changes are listed in
+[CHANGELOG.md](CHANGELOG.md).
+
+## Security
+
+Please report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md).
+
+## License
+
+[MIT](LICENSE) © 2026 Brahim Anjjar
