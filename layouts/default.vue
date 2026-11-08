@@ -1,7 +1,7 @@
 <template>
   <div class="md:flex">
     <a href="#main"
-      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-accent focus:shadow-sm focus:outline-none focus:ring-2 focus:ring-accent">
+      class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-sm focus:bg-white focus:px-3 focus:py-1 focus:text-xs focus:font-medium focus:text-accent focus:shadow-sm focus:outline-none focus:ring-2 focus:ring-accent">
       Skip to content
     </a>
     <!-- md+: persistent sidebar -->
@@ -11,18 +11,18 @@
 
     <div class="min-w-0 flex-1">
       <!-- < md: slim top bar -->
-      <header class="sticky top-0 z-30 flex h-12 items-center justify-between border-b border-black/5 bg-white/70 px-4 backdrop-blur-xl md:hidden">
-        <NuxtLink to="/" aria-current="false" class="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent font-semibold tracking-tight">DR Checker</NuxtLink>
+      <header class="sticky top-0 z-30 flex h-9 items-center justify-between border-b border-[#ccc] bg-[#f3f3f3] px-3 md:hidden">
+        <NuxtLink to="/" aria-current="false" class="rounded-sm text-[13px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">DR Checker</NuxtLink>
         <button
           ref="menuButton"
           type="button"
-          class="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          class="flex h-7 w-7 items-center justify-center rounded-sm hover:bg-[#e0e0e0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           aria-label="Open menu"
           aria-controls="mobile-drawer"
           :aria-expanded="open"
           @click="open = true"
         >
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true">
             <path d="M4 7h16M4 12h16M4 17h16" />
           </svg>
         </button>
