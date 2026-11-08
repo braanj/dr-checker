@@ -1,6 +1,6 @@
 <template>
   <div
-    class="sticky bottom-0 z-20 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-sm border border-[#ccc] bg-[#f3f3f3] px-2 py-1.5 shadow-md"
+    class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-sm border border-[#ccc] bg-[#f3f3f3] px-2 py-1.5 shadow-md"
     role="region"
     aria-label="Selection"
   >

@@ -92,25 +92,27 @@
           </DomainsTable>
         </div>
 
-        <DomainsPager
-          v-if="data && data.total > 0"
-          :page="data.page"
-          :page-size="data.pageSize"
-          :total="data.total"
-          :total-pages="data.totalPages"
-          @page="(p) => update({ page: p })"
-          @page-size="(n) => update({ pageSize: n as DomainsState['pageSize'] })"
-        />
+        <div v-if="(data && data.total > 0) || selection.size > 0" class="sticky bottom-0 z-20 space-y-1.5 border-t border-[#ccc] bg-white py-1.5">
+          <DomainsPager
+            v-if="data && data.total > 0"
+            :page="data.page"
+            :page-size="data.pageSize"
+            :total="data.total"
+            :total-pages="data.totalPages"
+            @page="(p) => update({ page: p })"
+            @page-size="(n) => update({ pageSize: n as DomainsState['pageSize'] })"
+          />
 
-        <DomainsSelectionBar
-          v-if="selection.size > 0"
-          :count="selection.size"
-          :exporting="exporting"
-          :capped="capped"
-          :message="exportMessage"
-          @clear="clearSelection"
-          @export="exportSelected"
-        />
+          <DomainsSelectionBar
+            v-if="selection.size > 0"
+            :count="selection.size"
+            :exporting="exporting"
+            :capped="capped"
+            :message="exportMessage"
+            @clear="clearSelection"
+            @export="exportSelected"
+          />
+        </div>
       </div>
     </div>
   </div>
