@@ -4,7 +4,7 @@ import { parseDomainsQuery, DomainsQueryError } from "../server/utils/domainsQue
 describe("parseDomainsQuery", () => {
   it("returns defaults", () => {
     expect(parseDomainsQuery({})).toEqual({
-      page: 1, pageSize: 20, sortBy: "checked_at", sortDir: "desc", domain: "", tld: "",
+      page: 1, pageSize: 50, sortBy: "checked_at", sortDir: "desc", domain: "", tld: "",
       drMin: null, drMax: null, checkedFrom: null, checkedTo: null,
     });
   });

@@ -46,6 +46,10 @@ describe("route state", () => {
     expect(parseDomainsRoute({})).toEqual(DEFAULT_STATE);
     expect(toRouteQuery(DEFAULT_STATE)).toEqual({});
   });
+  it("keeps a non-default page size in the URL", () => {
+    expect(parseDomainsRoute({ pageSize: "20" }).pageSize).toBe(20);
+    expect(toRouteQuery({ ...DEFAULT_STATE, pageSize: 20 })).toEqual({ pageSize: "20" });
+  });
   it("invalid values fall back", () => {
     expect(
       parseDomainsRoute({ pageSize: "37", sortBy: "foo", sortDir: "up", page: "-2", drMin: "abc" }),
