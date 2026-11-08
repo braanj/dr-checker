@@ -30,3 +30,5 @@ supabase/.branches/
 # verify-dr-checker skill: run state, proof artifacts, driver deps
 .verify/
 .claude/skills/verify-dr-checker/scripts/node_modules/
+
+.superpowers/
