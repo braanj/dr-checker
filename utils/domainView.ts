@@ -2,6 +2,7 @@
 
 import { CACHE_TTL_DAYS, isFresh } from "../supabase/functions/_shared/cache";
 import { isoDate } from "./checkedAgo";
+import { DR_BAND_COLORS, drBand } from "./domainsTable";
 
 export interface DomainMetaView {
   title: string | null;
@@ -133,4 +134,9 @@ export function drPointLabel(points: ChartPoint[], i: number): string {
   const label = `DR ${formatDr(p.y)} · ${isoDate(new Date(p.x).toISOString())}`;
   const delta = formatDelta(i > 0 ? p.y - points[i - 1].y : null);
   return delta.dir === "up" || delta.dir === "down" ? `${label} · ${delta.text}` : label;
+}
+
+export function drPointColor(points: ChartPoint[], i: number): string {
+  const delta = formatDelta(i > 0 ? points[i].y - points[i - 1].y : null);
+  return delta.dir === "down" ? "#c62828" : DR_BAND_COLORS[drBand(points[i].y)];
 }

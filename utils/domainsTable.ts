@@ -10,6 +10,14 @@ export function drBand(dr: number): DrBand {
   return "low";
 }
 
+// Opaque low gray: a translucent chart dot would show the line through it.
+export const DR_BAND_COLORS: Record<DrBand, string> = {
+  low: "#bdbdbd",
+  mid: "#fbbf24",
+  high: "#0071e3",
+  top: "#10b981",
+};
+
 export function pageRange(current: number, total: number): (number | "…")[] {
   if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
   const keep = new Set<number>([1, total, current - 1, current, current + 1]);
