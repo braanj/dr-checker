@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { domainPageState, domainSeo, formatDr, historyByDay, metaViewFrom, nextAutoRecheck, siteBase, sparklinePath, type DomainView } from "../utils/domainView";
+import { domainPageState, domainSeo, drPointLabel, formatDr, historyByDay, historyChartPoints, metaViewFrom, nextAutoRecheck, siteBase, sparklinePath, type DomainView } from "../utils/domainView";
 import { isoDate } from "../utils/checkedAgo";
 import { checkedAgo } from "../utils/checkedAgo";
 
@@ -124,5 +124,45 @@ describe("historyByDay", () => {
       { dr: 90, checked_at: "2026-08-16T10:00:00Z" },
     ];
     expect(historyByDay(history)).toEqual([history[0], history[3]]);
+  });
+});
+
+describe("historyChartPoints", () => {
+  it("turns newest-first days into oldest-first points placed at their real time", () => {
+    const days = [
+      { dr: 47, checked_at: "2026-08-14T09:00:00Z" },
+      { dr: 43, checked_at: "2026-07-01T09:00:00Z" },
+      { dr: 44, checked_at: "2026-06-30T09:00:00Z" },
+    ];
+    expect(historyChartPoints(days)).toEqual([
+      { x: Date.UTC(2026, 5, 30, 9), y: 44 },
+      { x: Date.UTC(2026, 6, 1, 9), y: 43 },
+      { x: Date.UTC(2026, 7, 14, 9), y: 47 },
+    ]);
+  });
+});
+
+describe("drPointLabel", () => {
+  const points = [
+    { x: Date.UTC(2026, 5, 30, 9), y: 44 },
+    { x: Date.UTC(2026, 6, 1, 9), y: 43 },
+    { x: Date.UTC(2026, 6, 20, 9), y: 43 },
+    { x: Date.UTC(2026, 7, 14, 9), y: 47 },
+  ];
+
+  it("shows DR, UTC date and the rise since the previous reading", () => {
+    expect(drPointLabel(points, 3)).toBe("DR 47 · 2026-08-14 · +4");
+  });
+
+  it("shows a drop with a minus sign", () => {
+    expect(drPointLabel(points, 1)).toBe("DR 43 · 2026-07-01 · −1");
+  });
+
+  it("omits the change for the first reading", () => {
+    expect(drPointLabel(points, 0)).toBe("DR 44 · 2026-06-30");
+  });
+
+  it("omits a zero change", () => {
+    expect(drPointLabel(points, 2)).toBe("DR 43 · 2026-07-20");
   });
 });

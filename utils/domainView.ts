@@ -2,6 +2,7 @@
 
 import { CACHE_TTL_DAYS, isFresh } from "../supabase/functions/_shared/cache";
 import { isoDate } from "./checkedAgo";
+import { formatDelta } from "./domainsTable";
 
 export interface DomainMetaView {
   title: string | null;
@@ -101,4 +102,21 @@ export function historyByDay<T extends { checked_at: string }>(history: T[]): T[
     seen.add(day);
     return true;
   });
+}
+
+export interface ChartPoint {
+  x: number; // epoch ms
+  y: number; // DR
+}
+
+// Newest-first days in, oldest-first points out, placed at their real time.
+export function historyChartPoints(days: { dr: number; checked_at: string }[]): ChartPoint[] {
+  return days.map((h) => ({ x: Date.parse(h.checked_at), y: h.dr })).reverse();
+}
+
+export function drPointLabel(points: ChartPoint[], i: number): string {
+  const p = points[i];
+  const label = `DR ${formatDr(p.y)} · ${isoDate(new Date(p.x).toISOString())}`;
+  const delta = formatDelta(i > 0 ? p.y - points[i - 1].y : null);
+  return delta.dir === "up" || delta.dir === "down" ? `${label} · ${delta.text}` : label;
 }
