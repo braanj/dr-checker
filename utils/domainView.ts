@@ -2,7 +2,6 @@
 
 import { CACHE_TTL_DAYS, isFresh } from "../supabase/functions/_shared/cache";
 import { isoDate } from "./checkedAgo";
-import { DR_BAND_COLORS, drBand } from "./domainsTable";
 
 export interface DomainMetaView {
   title: string | null;
@@ -136,8 +135,14 @@ export function drPointLabel(points: ChartPoint[], i: number): string {
   return delta.dir === "up" || delta.dir === "down" ? `${label} · ${delta.text}` : label;
 }
 
-// Color of the line segment that ends at reading i: red when DR declined into it.
+export const DELTA_COLORS: Record<ReturnType<typeof formatDelta>["dir"], string> = {
+  up: "#1a7f37",
+  down: "#c62828",
+  flat: "#6e6e73",
+  none: "#6e6e73",
+};
+
+// The line segment ending at reading i takes the color of its change, like the table's Δ.
 export function drSegmentColor(points: ChartPoint[], i: number): string {
-  const delta = formatDelta(i > 0 ? points[i].y - points[i - 1].y : null);
-  return delta.dir === "down" ? "#c62828" : DR_BAND_COLORS[drBand(points[i].y)];
+  return DELTA_COLORS[formatDelta(points[i].y - points[i - 1].y).dir];
 }
