@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { domainPageState, domainSeo, drPointColor, drPointLabel, formatDelta, formatDr, historyByDay, historyChartPoints, metaViewFrom, nextAutoRecheck, siteBase, sparklinePath, type DomainView } from "../utils/domainView";
+import { domainPageState, domainSeo, drSegmentColor, drPointLabel, formatDelta, formatDr, historyByDay, historyChartPoints, metaViewFrom, nextAutoRecheck, siteBase, sparklinePath, type DomainView } from "../utils/domainView";
 import { isoDate } from "../utils/checkedAgo";
 import { checkedAgo } from "../utils/checkedAgo";
 
@@ -212,23 +212,19 @@ describe("drPointLabel", () => {
   });
 });
 
-describe("drPointColor", () => {
+describe("drSegmentColor", () => {
   const at = (...ys: number[]) => ys.map((y, i) => ({ x: Date.UTC(2026, 0, i + 1), y }));
 
-  it("colors a non-declining reading by its DR band", () => {
-    const points = at(29.9, 30, 60, 80);
-    expect(points.map((_, i) => drPointColor(points, i))).toEqual(["#bdbdbd", "#fbbf24", "#0071e3", "#10b981"]);
+  it("colors a non-declining segment by the DR band it ends in", () => {
+    const points = at(10, 29.9, 30, 60, 80);
+    expect([1, 2, 3, 4].map((i) => drSegmentColor(points, i))).toEqual(["#bdbdbd", "#fbbf24", "#0071e3", "#10b981"]);
   });
 
-  it("colors a decline red, even in the top band", () => {
-    expect(drPointColor(at(95, 90), 1)).toBe("#c62828");
+  it("colors a declining segment red, even in the top band", () => {
+    expect(drSegmentColor(at(95, 90), 1)).toBe("#c62828");
   });
 
   it("does not count a decline that rounds to 0 at one decimal", () => {
-    expect(drPointColor(at(85.04, 85), 1)).toBe("#10b981");
-  });
-
-  it("uses the band for the first reading", () => {
-    expect(drPointColor(at(45), 0)).toBe("#fbbf24");
+    expect(drSegmentColor(at(85.04, 85), 1)).toBe("#10b981");
   });
 });

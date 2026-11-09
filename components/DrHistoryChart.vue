@@ -19,7 +19,7 @@ async function draw() {
   if (unmounted || !canvas.value) return;
   Chart.register(LineController, LineElement, PointElement, LinearScale, Tooltip);
   const points = historyChartPoints(props.days);
-  const colors = points.map((_, i) => drPointColor(points, i));
+  const dotColors = points.map((p) => DR_BAND_COLORS[drBand(p.y)]);
   chart?.destroy();
   chart = new Chart(canvas.value, {
     type: "line",
@@ -28,9 +28,9 @@ async function draw() {
         data: points,
         borderColor: ACCENT,
         backgroundColor: ACCENT,
-        pointBackgroundColor: colors,
-        pointBorderColor: colors,
-        segment: { borderColor: (ctx) => colors[ctx.p1DataIndex] },
+        pointBackgroundColor: dotColors,
+        pointBorderColor: dotColors,
+        segment: { borderColor: (ctx) => drSegmentColor(points, ctx.p1DataIndex) },
         borderWidth: 2,
         pointRadius: 3,
         pointHoverRadius: 5,

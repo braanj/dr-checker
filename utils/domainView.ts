@@ -136,7 +136,8 @@ export function drPointLabel(points: ChartPoint[], i: number): string {
   return delta.dir === "up" || delta.dir === "down" ? `${label} · ${delta.text}` : label;
 }
 
-export function drPointColor(points: ChartPoint[], i: number): string {
+// Color of the line segment that ends at reading i: red when DR declined into it.
+export function drSegmentColor(points: ChartPoint[], i: number): string {
   const delta = formatDelta(i > 0 ? points[i].y - points[i - 1].y : null);
   return delta.dir === "down" ? "#c62828" : DR_BAND_COLORS[drBand(points[i].y)];
 }
