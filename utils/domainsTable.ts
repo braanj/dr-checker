@@ -1,4 +1,4 @@
-// Pure helpers for the /domains page: DR bands, deltas, paging and URL state.
+// Pure helpers for the /domains page: DR bands, paging and URL state.
 import type { SortBy } from "~/server/utils/domainsQuery";
 
 export type DrBand = "low" | "mid" | "high" | "top";
@@ -10,17 +10,20 @@ export function drBand(dr: number): DrBand {
   return "low";
 }
 
-export function formatDelta(change: number | null): {
-  text: string;
-  dir: "up" | "down" | "flat" | "none";
-  label: string;
-} {
-  if (change === null || !Number.isFinite(change)) return { text: "—", dir: "none", label: "No previous check" };
-  const n = Math.round(change);
-  if (n > 0) return { text: `+${n}`, dir: "up", label: `Up ${n} since previous check` };
-  if (n < 0) return { text: `−${-n}`, dir: "down", label: `Down ${-n} since previous check` };
-  return { text: "0", dir: "flat", label: "No change since previous check" };
-}
+// Opaque low gray: a translucent chart dot would show the line through it.
+export const DR_BAND_COLORS: Record<DrBand, string> = {
+  low: "#bdbdbd",
+  mid: "#fbbf24",
+  high: "#0071e3",
+  top: "#10b981",
+};
+
+export const DR_BAND_LABELS: Record<DrBand, string> = {
+  low: "under 30",
+  mid: "30–59",
+  high: "60–79",
+  top: "80+",
+};
 
 export function pageRange(current: number, total: number): (number | "…")[] {
   if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);

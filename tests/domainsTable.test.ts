@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_STATE,
   drBand,
-  formatDelta,
   nextSort,
   pageRange,
   parseDomainsRoute,
@@ -19,15 +18,6 @@ describe("drBand", () => {
     expect(drBand(60)).toBe("high");
     expect(drBand(80)).toBe("top");
     expect(drBand(100)).toBe("top");
-  });
-});
-
-describe("formatDelta", () => {
-  it("formats", () => {
-    expect(formatDelta(3)).toEqual({ text: "+3", dir: "up", label: "Up 3 since previous check" });
-    expect(formatDelta(-1.4)).toEqual({ text: "−1", dir: "down", label: "Down 1 since previous check" });
-    expect(formatDelta(0.2)).toEqual({ text: "0", dir: "flat", label: "No change since previous check" });
-    expect(formatDelta(null)).toEqual({ text: "—", dir: "none", label: "No previous check" });
   });
 });
 
