@@ -1,5 +1,5 @@
 <template>
-  <div class="md:flex">
+  <div class="mx-auto max-w-[1024px] md:flex lg:border-x lg:border-[#ccc]">
     <a href="#main"
       class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-sm focus:bg-white focus:px-3 focus:py-1 focus:text-xs focus:font-medium focus:text-accent focus:shadow-sm focus:outline-none focus:ring-2 focus:ring-accent">
       Skip to content
