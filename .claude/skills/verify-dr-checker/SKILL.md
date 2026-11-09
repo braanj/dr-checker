@@ -52,6 +52,7 @@ Each journey is a standalone Playwright script. Set `PORT` to target another ins
 export PATH=$HOME/.nvm/versions/node/v24.16.0/bin:$PATH
 node $S/journeys/directory.mjs            # /domains: sort, search, select, export CSV
 node $S/journeys/domain-page.mjs [domain] # /domain/<d>: 200 + SEO, 301 canonical, 404 + noindex
+node $S/journeys/history-chart.mjs [domain] # /domain/<d> chart: no layout shift, tooltip on hover and phone tap
 node $S/journeys/check.mjs [domain]       # home typed check of a cached domain (writes 1 batch)
 PORT=3124 node $S/journeys/directory.mjs
 ```

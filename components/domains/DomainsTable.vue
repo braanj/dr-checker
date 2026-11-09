@@ -38,7 +38,7 @@
           <td class="text-right tabular-nums">
             <div v-if="row.dr !== null" class="flex items-center justify-end gap-1.5">
               <DomainsDrBar :dr="row.dr" />
-              <span class="w-6 font-medium">{{ formatDr(Number(row.dr)) }}</span>
+              <span class="w-8 font-medium">{{ formatDr(Number(row.dr)) }}</span>
             </div>
             <span v-else class="text-[#6e6e73]">—</span>
           </td>
