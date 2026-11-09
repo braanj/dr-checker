@@ -165,4 +165,29 @@ describe("drPointLabel", () => {
   it("omits a zero change", () => {
     expect(drPointLabel(points, 2)).toBe("DR 43 · 2026-07-20");
   });
+
+  const decimals = [
+    { x: Date.UTC(2026, 10, 5, 9), y: 2.5 },
+    { x: Date.UTC(2026, 10, 7, 9), y: 2.3 },
+    { x: Date.UTC(2026, 10, 8, 9), y: 2.5 },
+    { x: Date.UTC(2026, 10, 9, 9), y: 2.52 },
+    { x: Date.UTC(2026, 10, 10, 9), y: 0.2 },
+  ];
+
+  it("shows a decimal DR and a decimal drop without float noise", () => {
+    expect(drPointLabel(decimals, 1)).toBe("DR 2.3 · 2026-11-07 · −0.2");
+  });
+
+  it("shows a decimal rise", () => {
+    expect(drPointLabel(decimals, 2)).toBe("DR 2.5 · 2026-11-08 · +0.2");
+  });
+
+  it("omits a change that rounds to zero at one decimal", () => {
+    expect(drPointLabel(decimals, 3)).toBe("DR 2.5 · 2026-11-09");
+  });
+
+  it("keeps a DR below 1 instead of rounding it to 0", () => {
+    expect(drPointLabel(decimals, 0)).toBe("DR 2.5 · 2026-11-05");
+    expect(drPointLabel(decimals, 4)).toBe("DR 0.2 · 2026-11-10 · −2.3");
+  });
 });

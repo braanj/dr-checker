@@ -56,10 +56,10 @@ await run("history-chart", async ({ page, context, dir, check, proof, log }) => 
   await proof("01-drawn");
 
   const tipLatest = await pointAt(page, -1, false);
-  check(/^DR \d+ · \d{4}-\d{2}-\d{2}( · [+−]\d+)?$/.test(tipLatest ?? ""), `hover on the latest dot shows its tooltip (${tipLatest})`);
+  check(/^DR \d+(\.\d)? · \d{4}-\d{2}-\d{2}( · [+−]\d+(\.\d)?)?$/.test(tipLatest ?? ""), `hover on the latest dot shows its tooltip (${tipLatest})`);
   await proof("02-hover-latest");
   const tipOldest = await pointAt(page, 0, false);
-  check(/^DR \d+ · \d{4}-\d{2}-\d{2}$/.test(tipOldest ?? ""), `oldest dot's tooltip has no change (${tipOldest})`);
+  check(/^DR \d+(\.\d)? · \d{4}-\d{2}-\d{2}$/.test(tipOldest ?? ""), `oldest dot's tooltip has no change (${tipOldest})`);
   await proof("03-hover-oldest");
 
   const phone = await context.browser().newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
