@@ -30,8 +30,23 @@ export function domainPageState(
 }
 
 // One DR display rule for title, description and body.
+// One decimal, and the rounding also absorbs float noise (2.3 - 2.5 = -0.19999...).
+const tenths = (n: number) => Math.round(n * 10) / 10;
+
 export function formatDr(dr: number): string {
-  return String(Math.round(dr));
+  return String(tenths(dr));
+}
+
+export function formatDelta(change: number | null): {
+  text: string;
+  dir: "up" | "down" | "flat" | "none";
+  label: string;
+} {
+  if (change === null || !Number.isFinite(change)) return { text: "—", dir: "none", label: "No previous check" };
+  const n = tenths(change);
+  if (n > 0) return { text: `+${n}`, dir: "up", label: `Up ${n} since previous check` };
+  if (n < 0) return { text: `−${-n}`, dir: "down", label: `Down ${-n} since previous check` };
+  return { text: "0", dir: "flat", label: "No change since previous check" };
 }
 
 // SITE_URL may be configured with a trailing slash; never emit `//domain/…`.
@@ -101,4 +116,33 @@ export function historyByDay<T extends { checked_at: string }>(history: T[]): T[
     seen.add(day);
     return true;
   });
+}
+
+export interface ChartPoint {
+  x: number; // epoch ms
+  y: number; // DR
+}
+
+// Newest-first days in, oldest-first points out, placed at their real time.
+export function historyChartPoints(days: { dr: number; checked_at: string }[]): ChartPoint[] {
+  return days.map((h) => ({ x: Date.parse(h.checked_at), y: h.dr })).reverse();
+}
+
+export function drPointLabel(points: ChartPoint[], i: number): string {
+  const p = points[i];
+  const label = `DR ${formatDr(p.y)} · ${isoDate(new Date(p.x).toISOString())}`;
+  const delta = formatDelta(i > 0 ? p.y - points[i - 1].y : null);
+  return delta.dir === "up" || delta.dir === "down" ? `${label} · ${delta.text}` : label;
+}
+
+export const DELTA_COLORS: Record<ReturnType<typeof formatDelta>["dir"], string> = {
+  up: "#1a7f37",
+  down: "#c62828",
+  flat: "#6e6e73",
+  none: "#6e6e73",
+};
+
+// The line segment ending at reading i takes the color of its change, like the table's Δ.
+export function drSegmentColor(points: ChartPoint[], i: number): string {
+  return DELTA_COLORS[formatDelta(points[i].y - points[i - 1].y).dir];
 }

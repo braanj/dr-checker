@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { domainPageState, domainSeo, formatDr, historyByDay, metaViewFrom, nextAutoRecheck, siteBase, sparklinePath, type DomainView } from "../utils/domainView";
+import { domainPageState, domainSeo, drSegmentColor, drPointLabel, formatDelta, formatDr, historyByDay, historyChartPoints, metaViewFrom, nextAutoRecheck, siteBase, sparklinePath, type DomainView } from "../utils/domainView";
 import { isoDate } from "../utils/checkedAgo";
 import { checkedAgo } from "../utils/checkedAgo";
 
@@ -14,15 +14,15 @@ const view: DomainView = {
 describe("domainSeo", () => {
   it("builds title, description and canonical URL from the DR", () => {
     expect(domainSeo(view, "https://dr-bulkchecker.netlify.app")).toEqual({
-      title: "example.com Domain Rating (DR 92) | DR Checker",
-      description: "example.com has an Ahrefs Domain Rating of 92 (checked 2026-10-01).",
+      title: "example.com Domain Rating (DR 91.6) | DR Checker",
+      description: "example.com has an Ahrefs Domain Rating of 91.6 (checked 2026-10-01).",
       canonical: "https://dr-bulkchecker.netlify.app/domain/example.com",
     });
   });
 
   it("appends the site description and caps the result at 300 characters", () => {
     const seo = domainSeo({ ...view, meta: { title: null, description: "x".repeat(400), favicon_url: null } }, "https://s");
-    expect(seo.description.startsWith("example.com has an Ahrefs Domain Rating of 92 (checked 2026-10-01). xxx")).toBe(true);
+    expect(seo.description.startsWith("example.com has an Ahrefs Domain Rating of 91.6 (checked 2026-10-01). xxx")).toBe(true);
     expect(seo.description.length).toBe(300);
     expect(seo.description.endsWith("…")).toBe(true);
   });
@@ -70,9 +70,12 @@ describe("domainPageState", () => {
 });
 
 describe("formatDr / siteBase / isoDate", () => {
-  it("formats DR the same way everywhere (rounded)", () => {
-    expect(formatDr(91.6)).toBe("92");
-    expect(formatDr(45.5)).toBe("46");
+  it("formats DR the same way everywhere (one decimal, no trailing .0)", () => {
+    expect(formatDr(91.6)).toBe("91.6");
+    expect(formatDr(26)).toBe("26");
+    expect(formatDr(0.2)).toBe("0.2");
+    expect(formatDr(45.55)).toBe("45.6");
+    expect(formatDr(12.04)).toBe("12");
     expect(formatDr(0)).toBe("0");
   });
 
@@ -124,5 +127,100 @@ describe("historyByDay", () => {
       { dr: 90, checked_at: "2026-08-16T10:00:00Z" },
     ];
     expect(historyByDay(history)).toEqual([history[0], history[3]]);
+  });
+});
+
+describe("historyChartPoints", () => {
+  it("turns newest-first days into oldest-first points placed at their real time", () => {
+    const days = [
+      { dr: 47, checked_at: "2026-08-14T09:00:00Z" },
+      { dr: 43, checked_at: "2026-07-01T09:00:00Z" },
+      { dr: 44, checked_at: "2026-06-30T09:00:00Z" },
+    ];
+    expect(historyChartPoints(days)).toEqual([
+      { x: Date.UTC(2026, 5, 30, 9), y: 44 },
+      { x: Date.UTC(2026, 6, 1, 9), y: 43 },
+      { x: Date.UTC(2026, 7, 14, 9), y: 47 },
+    ]);
+  });
+});
+
+describe("formatDelta", () => {
+  it("formats", () => {
+    expect(formatDelta(3)).toEqual({ text: "+3", dir: "up", label: "Up 3 since previous check" });
+    expect(formatDelta(-1.4)).toEqual({ text: "−1.4", dir: "down", label: "Down 1.4 since previous check" });
+    expect(formatDelta(0.2)).toEqual({ text: "+0.2", dir: "up", label: "Up 0.2 since previous check" });
+    expect(formatDelta(0.04)).toEqual({ text: "0", dir: "flat", label: "No change since previous check" });
+    expect(formatDelta(-0.04)).toEqual({ text: "0", dir: "flat", label: "No change since previous check" });
+    expect(formatDelta(0)).toEqual({ text: "0", dir: "flat", label: "No change since previous check" });
+    expect(formatDelta(null)).toEqual({ text: "—", dir: "none", label: "No previous check" });
+  });
+
+  it("does not leak float subtraction noise", () => {
+    expect(formatDelta(2.3 - 2.5)).toEqual({ text: "−0.2", dir: "down", label: "Down 0.2 since previous check" });
+    expect(formatDelta(0.1 + 0.2)).toEqual({ text: "+0.3", dir: "up", label: "Up 0.3 since previous check" });
+  });
+});
+
+describe("drPointLabel", () => {
+  const points = [
+    { x: Date.UTC(2026, 5, 30, 9), y: 44 },
+    { x: Date.UTC(2026, 6, 1, 9), y: 43 },
+    { x: Date.UTC(2026, 6, 20, 9), y: 43 },
+    { x: Date.UTC(2026, 7, 14, 9), y: 47 },
+  ];
+
+  it("shows DR, UTC date and the rise since the previous reading", () => {
+    expect(drPointLabel(points, 3)).toBe("DR 47 · 2026-08-14 · +4");
+  });
+
+  it("shows a drop with a minus sign", () => {
+    expect(drPointLabel(points, 1)).toBe("DR 43 · 2026-07-01 · −1");
+  });
+
+  it("omits the change for the first reading", () => {
+    expect(drPointLabel(points, 0)).toBe("DR 44 · 2026-06-30");
+  });
+
+  it("omits a zero change", () => {
+    expect(drPointLabel(points, 2)).toBe("DR 43 · 2026-07-20");
+  });
+
+  const decimals = [
+    { x: Date.UTC(2026, 10, 5, 9), y: 2.5 },
+    { x: Date.UTC(2026, 10, 7, 9), y: 2.3 },
+    { x: Date.UTC(2026, 10, 8, 9), y: 2.5 },
+    { x: Date.UTC(2026, 10, 9, 9), y: 2.52 },
+    { x: Date.UTC(2026, 10, 10, 9), y: 0.2 },
+  ];
+
+  it("shows a decimal DR and a decimal drop without float noise", () => {
+    expect(drPointLabel(decimals, 1)).toBe("DR 2.3 · 2026-11-07 · −0.2");
+  });
+
+  it("shows a decimal rise", () => {
+    expect(drPointLabel(decimals, 2)).toBe("DR 2.5 · 2026-11-08 · +0.2");
+  });
+
+  it("omits a change that rounds to zero at one decimal", () => {
+    expect(drPointLabel(decimals, 3)).toBe("DR 2.5 · 2026-11-09");
+  });
+
+  it("keeps a DR below 1 instead of rounding it to 0", () => {
+    expect(drPointLabel(decimals, 0)).toBe("DR 2.5 · 2026-11-05");
+    expect(drPointLabel(decimals, 4)).toBe("DR 0.2 · 2026-11-10 · −2.3");
+  });
+});
+
+describe("drSegmentColor", () => {
+  const at = (...ys: number[]) => ys.map((y, i) => ({ x: Date.UTC(2026, 0, i + 1), y }));
+
+  it("colors a segment like the table's change: green up, red down, gray flat", () => {
+    const points = at(10, 12, 95, 90, 90);
+    expect([1, 2, 3, 4].map((i) => drSegmentColor(points, i))).toEqual(["#1a7f37", "#1a7f37", "#c62828", "#6e6e73"]);
+  });
+
+  it("treats a change that rounds to 0 at one decimal as flat", () => {
+    expect(drSegmentColor(at(85.04, 85), 1)).toBe("#6e6e73");
   });
 });

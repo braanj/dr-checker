@@ -36,12 +36,7 @@
 
       <section class="max-w-3xl">
         <h2 class="panel-label">DR over time</h2>
-        <svg v-if="days.length > 1" class="mt-1 h-16 w-full border border-[#e3e3e3]" viewBox="0 0 300 60" preserveAspectRatio="none"
-          role="img" :aria-label="`DR history for ${view.domain}`">
-          <title>{{ `DR history for ${view.domain}, oldest to newest` }}</title>
-          <path :d="sparklinePath([...days].reverse().map((h) => h.dr), 300, 60)" fill="none"
-            stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke" class="text-accent" />
-        </svg>
+        <DrHistoryChart v-if="days.length > 1" :days="days" :domain="view.domain" />
         <table class="data-table mt-1 w-auto min-w-[16rem]">
           <thead>
             <tr>

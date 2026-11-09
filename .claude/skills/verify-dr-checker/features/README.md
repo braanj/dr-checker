@@ -30,5 +30,5 @@ Each feature file starts with an H1 and one paragraph describing the user-visibl
 ## Features
 
 - [Domain directory](./directory.md): browse, sort, filter, paginate, select and export `/domains`. Proven by `journeys/directory.mjs`.
-- [Domain page](./domain-page.md): `/domain/<domain>` with DR history, SEO head, canonical redirect, and the unknown-domain state. Proven by `journeys/domain-page.mjs`.
+- [Domain page](./domain-page.md): `/domain/<domain>` with DR history, SEO head, canonical redirect, and the unknown-domain state. Proven by `journeys/domain-page.mjs`; the DR history chart by `journeys/history-chart.mjs`.
 - [Check DR](./check.md): typed and CSV checks from the home page, inline results, the results page, CSV download, recent checks. `journeys/check.mjs` covers the typed inline path and writes to production.

@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
+    "chart.js": "^4.6.1",
     "nuxt": "^3.13.0",
     "vue": "^3.4.0"
   },
