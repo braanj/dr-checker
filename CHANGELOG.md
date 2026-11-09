@@ -8,6 +8,10 @@ Notable changes to DR Checker, newest first. The app is deployed continuously fr
 
 - Open-source project files: security policy, contributing guide, code of conduct, CI, issue and PR templates, this changelog.
 
+### Changed
+
+- The sidebar credit links to the author's website and GitHub profile.
+
 ## 2026-11-08
 
 ### Added

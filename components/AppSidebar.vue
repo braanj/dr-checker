@@ -40,13 +40,15 @@
         </svg>
         <span :class="labelClass">Collapse</span>
       </button>
-      <a
-        href="https://github.com/braanj"
-        class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent block rounded-sm px-2 py-1 text-[11px] leading-snug text-[#555] hover:text-[#1d1d1f] hover:underline"
+      <p
+        class="px-2 py-1 text-[11px] leading-snug text-[#555]"
         :class="drawer ? '' : '[html[data-sidebar=collapsed]_&]:hidden'"
       >
-        Developed with ❤️ by Brahim Anjjar
-      </a>
+        Developed with ❤️ by
+        <a href="https://anjjar.com/en" :class="creditLink">Brahim Anjjar</a>
+        ·
+        <a href="https://github.com/braanj" :class="creditLink">GitHub</a>
+      </p>
     </div>
   </aside>
 </template>
@@ -55,6 +57,7 @@
 import { navSection, SIDEBAR_KEY } from "~/utils/navSection";
 
 const props = defineProps<{ drawer?: boolean }>();
+const creditLink = "rounded-sm hover:text-[#1d1d1f] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent";
 const route = useRoute();
 const active = computed(() => navSection(route.path));
 
