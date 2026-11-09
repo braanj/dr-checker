@@ -1,6 +1,22 @@
 <template>
-  <div class="relative mt-1 h-48 w-full border border-[#e3e3e3]">
-    <canvas ref="canvas" role="img" :aria-label="`DR history for ${domain}`" />
+  <div class="mt-1">
+    <div class="relative h-48 w-full border border-[#e3e3e3]">
+      <canvas ref="canvas" role="img" :aria-label="`DR history for ${domain}`" />
+    </div>
+    <div class="mt-1 space-y-0.5 text-[11px] text-[#555]">
+      <p class="flex flex-wrap items-center gap-x-3">
+        <span>Dot: DR level</span>
+        <span v-for="(label, band) in DR_BAND_LABELS" :key="band" class="inline-flex items-center gap-1">
+          <span class="h-2 w-2 rounded-full" :style="{ backgroundColor: DR_BAND_COLORS[band] }" aria-hidden="true" />{{ label }}
+        </span>
+      </p>
+      <p class="flex flex-wrap items-center gap-x-3">
+        <span>Line: DR change</span>
+        <span v-for="(label, dir) in LINE_LABELS" :key="dir" class="inline-flex items-center gap-1">
+          <span class="h-0.5 w-3" :style="{ backgroundColor: DELTA_COLORS[dir] }" aria-hidden="true" />{{ label }}
+        </span>
+      </p>
+    </div>
   </div>
 </template>
 
@@ -10,6 +26,7 @@ import type { Chart } from "chart.js";
 const props = defineProps<{ days: { dr: number; checked_at: string }[]; domain: string }>();
 
 const ACCENT = "#0071e3";
+const LINE_LABELS = { up: "up", down: "down", flat: "no change" } as const;
 const canvas = ref<HTMLCanvasElement | null>(null);
 let chart: Chart<"line", ChartPoint[]> | null = null;
 let unmounted = false;

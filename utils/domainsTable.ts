@@ -18,6 +18,13 @@ export const DR_BAND_COLORS: Record<DrBand, string> = {
   top: "#10b981",
 };
 
+export const DR_BAND_LABELS: Record<DrBand, string> = {
+  low: "under 30",
+  mid: "30–59",
+  high: "60–79",
+  top: "80+",
+};
+
 export function pageRange(current: number, total: number): (number | "…")[] {
   if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1);
   const keep = new Set<number>([1, total, current - 1, current, current + 1]);
