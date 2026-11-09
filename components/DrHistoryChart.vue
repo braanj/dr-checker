@@ -30,6 +30,7 @@ async function draw() {
         backgroundColor: ACCENT,
         pointBackgroundColor: colors,
         pointBorderColor: colors,
+        segment: { borderColor: (ctx) => colors[ctx.p1DataIndex] },
         borderWidth: 2,
         pointRadius: 3,
         pointHoverRadius: 5,
