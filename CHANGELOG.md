@@ -11,6 +11,7 @@ Notable changes to DR Checker, newest first. The app is deployed continuously fr
 ### Changed
 
 - The "DR over time" chart on domain pages is now a real chart: DR on a 0–100 axis, readings placed by date, and each reading's DR, date and change on hover or tap.
+- DR and DR changes show one decimal everywhere (domain page, chart, directory, page titles) instead of being rounded to whole numbers, so a DR of 0.2 no longer reads 0.
 
 ## 2026-11-08
 

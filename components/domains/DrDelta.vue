@@ -8,7 +8,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatDelta } from "~/utils/domainsTable";
+import { formatDelta } from "~/utils/domainView";
 
 const props = defineProps<{ change: number | string | null }>();
 const d = computed(() => formatDelta(props.change === null ? null : Number(props.change)));

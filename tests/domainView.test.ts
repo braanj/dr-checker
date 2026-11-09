@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { domainPageState, domainSeo, drPointLabel, formatDr, historyByDay, historyChartPoints, metaViewFrom, nextAutoRecheck, siteBase, sparklinePath, type DomainView } from "../utils/domainView";
+import { domainPageState, domainSeo, drPointLabel, formatDelta, formatDr, historyByDay, historyChartPoints, metaViewFrom, nextAutoRecheck, siteBase, sparklinePath, type DomainView } from "../utils/domainView";
 import { isoDate } from "../utils/checkedAgo";
 import { checkedAgo } from "../utils/checkedAgo";
 
@@ -14,15 +14,15 @@ const view: DomainView = {
 describe("domainSeo", () => {
   it("builds title, description and canonical URL from the DR", () => {
     expect(domainSeo(view, "https://dr-bulkchecker.netlify.app")).toEqual({
-      title: "example.com Domain Rating (DR 92) | DR Checker",
-      description: "example.com has an Ahrefs Domain Rating of 92 (checked 2026-10-01).",
+      title: "example.com Domain Rating (DR 91.6) | DR Checker",
+      description: "example.com has an Ahrefs Domain Rating of 91.6 (checked 2026-10-01).",
       canonical: "https://dr-bulkchecker.netlify.app/domain/example.com",
     });
   });
 
   it("appends the site description and caps the result at 300 characters", () => {
     const seo = domainSeo({ ...view, meta: { title: null, description: "x".repeat(400), favicon_url: null } }, "https://s");
-    expect(seo.description.startsWith("example.com has an Ahrefs Domain Rating of 92 (checked 2026-10-01). xxx")).toBe(true);
+    expect(seo.description.startsWith("example.com has an Ahrefs Domain Rating of 91.6 (checked 2026-10-01). xxx")).toBe(true);
     expect(seo.description.length).toBe(300);
     expect(seo.description.endsWith("…")).toBe(true);
   });
@@ -70,9 +70,12 @@ describe("domainPageState", () => {
 });
 
 describe("formatDr / siteBase / isoDate", () => {
-  it("formats DR the same way everywhere (rounded)", () => {
-    expect(formatDr(91.6)).toBe("92");
-    expect(formatDr(45.5)).toBe("46");
+  it("formats DR the same way everywhere (one decimal, no trailing .0)", () => {
+    expect(formatDr(91.6)).toBe("91.6");
+    expect(formatDr(26)).toBe("26");
+    expect(formatDr(0.2)).toBe("0.2");
+    expect(formatDr(45.55)).toBe("45.6");
+    expect(formatDr(12.04)).toBe("12");
     expect(formatDr(0)).toBe("0");
   });
 
@@ -139,6 +142,23 @@ describe("historyChartPoints", () => {
       { x: Date.UTC(2026, 6, 1, 9), y: 43 },
       { x: Date.UTC(2026, 7, 14, 9), y: 47 },
     ]);
+  });
+});
+
+describe("formatDelta", () => {
+  it("formats", () => {
+    expect(formatDelta(3)).toEqual({ text: "+3", dir: "up", label: "Up 3 since previous check" });
+    expect(formatDelta(-1.4)).toEqual({ text: "−1.4", dir: "down", label: "Down 1.4 since previous check" });
+    expect(formatDelta(0.2)).toEqual({ text: "+0.2", dir: "up", label: "Up 0.2 since previous check" });
+    expect(formatDelta(0.04)).toEqual({ text: "0", dir: "flat", label: "No change since previous check" });
+    expect(formatDelta(-0.04)).toEqual({ text: "0", dir: "flat", label: "No change since previous check" });
+    expect(formatDelta(0)).toEqual({ text: "0", dir: "flat", label: "No change since previous check" });
+    expect(formatDelta(null)).toEqual({ text: "—", dir: "none", label: "No previous check" });
+  });
+
+  it("does not leak float subtraction noise", () => {
+    expect(formatDelta(2.3 - 2.5)).toEqual({ text: "−0.2", dir: "down", label: "Down 0.2 since previous check" });
+    expect(formatDelta(0.1 + 0.2)).toEqual({ text: "+0.3", dir: "up", label: "Up 0.3 since previous check" });
   });
 });
 

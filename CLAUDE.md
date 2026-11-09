@@ -108,6 +108,6 @@ pg_cron (1 min) → kick_meta_worker() → Edge Function fetch-meta → safeFetc
 - `server/utils/`: `checkInput.ts` (pure parsing, caps, cache planning), `createCheck.ts`, `rateLimit.ts`, `sitemap.ts`, `domainsQuery.ts`, `domainTrends.ts`, `domainsCsv.ts`.
 - `layouts/default.vue`, `components/AppSidebar.vue`, `components/domains/*`.
 - `pages/domain/[domain].vue`, `pages/domains.vue`, `pages/results/[batchId].vue`, `pages/index.vue`, `pages/docs.vue` (sticky TOC with scroll-spy).
-- `utils/` (auto-imported in the app): `domainPath`, `domainView` (SEO text, `formatDr`, `siteBase`, `metaViewFrom`, sparkline), `checkedAgo`/`isoDate`, `retry`, `realtimePoll`, `navSection`, `recentChecks`, `domainsTable` (`drBand`, `formatDelta`, `pageRange`), `domainSelection`.
+- `utils/` (auto-imported in the app): `domainPath`, `domainView` (SEO text, `formatDr`/`formatDelta` (one decimal), `siteBase`, `metaViewFrom`, sparkline), `checkedAgo`/`isoDate`, `retry`, `realtimePoll`, `navSection`, `recentChecks`, `domainsTable` (`drBand`, `pageRange`), `domainSelection`.
 - `scripts/provision-worker-secret.sh <project-ref>`: provisions or rotates `WORKER_SECRET` and the Vault entries `worker_secret`, `worker_url` and `meta_worker_url`. Run it once per project; rotating is safe (crons retry).
 - `tests/`: Vitest unit tests. `supabase/tests/`: rollback-only SQL scenarios.

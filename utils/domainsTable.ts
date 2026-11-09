@@ -1,4 +1,4 @@
-// Pure helpers for the /domains page: DR bands, deltas, paging and URL state.
+// Pure helpers for the /domains page: DR bands, paging and URL state.
 import type { SortBy } from "~/server/utils/domainsQuery";
 
 export type DrBand = "low" | "mid" | "high" | "top";
@@ -8,18 +8,6 @@ export function drBand(dr: number): DrBand {
   if (dr >= 60) return "high";
   if (dr >= 30) return "mid";
   return "low";
-}
-
-export function formatDelta(change: number | null): {
-  text: string;
-  dir: "up" | "down" | "flat" | "none";
-  label: string;
-} {
-  if (change === null || !Number.isFinite(change)) return { text: "—", dir: "none", label: "No previous check" };
-  const n = Math.round(change);
-  if (n > 0) return { text: `+${n}`, dir: "up", label: `Up ${n} since previous check` };
-  if (n < 0) return { text: `−${-n}`, dir: "down", label: `Down ${-n} since previous check` };
-  return { text: "0", dir: "flat", label: "No change since previous check" };
 }
 
 export function pageRange(current: number, total: number): (number | "…")[] {

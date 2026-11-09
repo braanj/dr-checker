@@ -30,8 +30,23 @@ export function domainPageState(
 }
 
 // One DR display rule for title, description and body.
+// One decimal, and the rounding also absorbs float noise (2.3 - 2.5 = -0.19999...).
+const tenths = (n: number) => Math.round(n * 10) / 10;
+
 export function formatDr(dr: number): string {
-  return String(Math.round(dr));
+  return String(tenths(dr));
+}
+
+export function formatDelta(change: number | null): {
+  text: string;
+  dir: "up" | "down" | "flat" | "none";
+  label: string;
+} {
+  if (change === null || !Number.isFinite(change)) return { text: "—", dir: "none", label: "No previous check" };
+  const n = tenths(change);
+  if (n > 0) return { text: `+${n}`, dir: "up", label: `Up ${n} since previous check` };
+  if (n < 0) return { text: `−${-n}`, dir: "down", label: `Down ${-n} since previous check` };
+  return { text: "0", dir: "flat", label: "No change since previous check" };
 }
 
 // SITE_URL may be configured with a trailing slash; never emit `//domain/…`.
@@ -113,14 +128,9 @@ export function historyChartPoints(days: { dr: number; checked_at: string }[]): 
   return days.map((h) => ({ x: Date.parse(h.checked_at), y: h.dr })).reverse();
 }
 
-// Rounding to tenths also absorbs float noise (2.3 - 2.5 = -0.19999...).
-const tenths = (n: number) => Math.round(n * 10) / 10;
-
 export function drPointLabel(points: ChartPoint[], i: number): string {
   const p = points[i];
-  const label = `DR ${tenths(p.y)} · ${isoDate(new Date(p.x).toISOString())}`;
-  const change = i > 0 ? tenths(p.y - points[i - 1].y) : 0;
-  if (change > 0) return `${label} · +${change}`;
-  if (change < 0) return `${label} · −${-change}`;
-  return label;
+  const label = `DR ${formatDr(p.y)} · ${isoDate(new Date(p.x).toISOString())}`;
+  const delta = formatDelta(i > 0 ? p.y - points[i - 1].y : null);
+  return delta.dir === "up" || delta.dir === "down" ? `${label} · ${delta.text}` : label;
 }
