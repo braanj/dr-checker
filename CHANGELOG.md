@@ -8,6 +8,10 @@ Notable changes to DR Checker, newest first. The app is deployed continuously fr
 
 - Open-source project files: security policy, contributing guide, code of conduct, CI, issue and PR templates, this changelog.
 
+### Changed
+
+- The app is capped at 1024px wide and centered on wider screens.
+
 ## 2026-11-08
 
 ### Added
