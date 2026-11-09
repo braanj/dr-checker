@@ -8,6 +8,10 @@ Notable changes to DR Checker, newest first. The app is deployed continuously fr
 
 - Open-source project files: security policy, contributing guide, code of conduct, CI, issue and PR templates, this changelog.
 
+### Changed
+
+- The "DR over time" chart on domain pages is now a real chart: DR on a 0–100 axis, readings placed by date, and each reading's DR, date and change on hover or tap.
+
 ## 2026-11-08
 
 ### Added
